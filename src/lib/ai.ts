@@ -14,9 +14,9 @@ if (!apiKey) {
     console.warn("⚠️ تحذير: لم يتم العثور على GEMINI_API_KEY. المحرك سيعتمد على المعالجة الاحتياطية!");
 }
 
-const genAI = new GoogleGenerativeAI(apiKey || "");
-
 const getAIModel = () => {
+    const key = process.env.GEMINI_API_KEY || "dummy_key";
+    const genAI = new GoogleGenerativeAI(key);
     return genAI.getGenerativeModel({
         model: 'gemini-2.5-flash',
         generationConfig: {
