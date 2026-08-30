@@ -3,7 +3,6 @@ import localFont from "next/font/local";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import { AuthProvider } from "@/providers/AuthProvider";
-import Footer from '@/components/Footer';
 
 const thmanyah = localFont({
   src: [
@@ -38,8 +37,8 @@ const thmanyah = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Masar - مسار",
-  description: "منصة التوظيف السعودية",
+  title: "مواقف | برنامج الاشتراك المجاني لمواقف السيارات",
+  description: "خدمة التقديم على اشتراك مجاني في مواقف السيارات لمدة سنة كاملة وفق أعلى المعايير الرقمية.",
   icons: {
     icon: '/logo.png',
   },
@@ -52,13 +51,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ar" dir="rtl" className={thmanyah.variable}>
-      <body className={`${thmanyah.className} antialiased`}>
+      <body className={`${thmanyah.className} antialiased bg-[#F7F9FC]`}>
         <AuthProvider>
           <Navbar />
-          <main className="min-h-screen pt-[54px] md:pt-[70px] lg:pt-[80px]">
+          <main className="min-h-screen">
             {children}
           </main>
-          <Footer />
         </AuthProvider>
       </body>
     </html>

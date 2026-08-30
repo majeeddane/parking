@@ -9,6 +9,7 @@ import { Bell, MessageSquare, Briefcase, User, Menu, X, Building2, BookOpen, Lay
 
 export default function Navbar() {
     const pathname = usePathname();
+    if (pathname?.startsWith('/mawqif')) return null;
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 

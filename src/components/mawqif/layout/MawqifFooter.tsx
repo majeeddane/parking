@@ -1,3 +1,4 @@
+'use client';
 import Link from 'next/link';
 import { Car, Phone, Mail, Clock, MapPin, Shield, FileText } from 'lucide-react';
 
