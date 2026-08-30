@@ -13,6 +13,7 @@ export interface MawqifUser {
   city: string;
   address: string;
   dateOfBirth?: string;
+  password?: string;
 }
 
 export interface UserApplication {
@@ -41,72 +42,24 @@ export interface NotificationItem {
   read: boolean;
 }
 
+interface AccountRecord {
+  user: MawqifUser;
+  application: UserApplication | null;
+  notifications: NotificationItem[];
+}
+
 interface MawqifContextType {
   currentUser: MawqifUser | null;
   isLoggedIn: boolean;
   userApplication: UserApplication | null;
   notifications: NotificationItem[];
-  login: (identifier: string) => boolean;
-  register: (user: Partial<MawqifUser>) => boolean;
+  login: (identifier: string, password?: string) => { success: boolean; error?: string };
+  register: (user: Partial<MawqifUser>, password?: string) => { success: boolean; error?: string };
   logout: () => void;
   submitApplication: (data: any) => string;
   updateProfile: (data: Partial<MawqifUser>) => void;
   markNotificationsRead: () => void;
 }
-
-const DEFAULT_USER: MawqifUser = {
-  id: 'usr-101',
-  firstName: 'محمد',
-  fatherName: 'أحمد',
-  familyName: 'العتيبي',
-  fullName: 'محمد أحمد العتيبي',
-  idNumber: '1082345678',
-  phone: '0501234567',
-  email: 'm.otaibi@example.com',
-  city: 'الرياض',
-  address: 'حي النرجس، شارع أنس بن مالك',
-  dateOfBirth: '1995-06-15',
-};
-
-const DEFAULT_APP: UserApplication = {
-  id: 'PARK-2026-10482',
-  submissionDate: '28 أغسطس 2026',
-  status: 'approved',
-  vehicleMake: 'تويوتا (Toyota)',
-  vehicleModel: 'Camry',
-  vehicleYear: '2024',
-  vehicleColor: 'أبيض لؤلؤي',
-  plateNumber: 'أ ب ج 1234',
-  vehicleLicenseNumber: '2049182390',
-  isOwner: 'yes',
-  subscriptionNumber: 'PARK-2026-10482',
-  subscriptionStartDate: '01 سبتمبر 2026',
-  subscriptionEndDate: '31 أغسطس 2027',
-};
-
-const DEFAULT_NOTIFS: NotificationItem[] = [
-  {
-    id: 1,
-    title: 'تم إصدار بطاقة اشتراكك الرقمية بنجاح 🟢',
-    desc: 'يسرنا إبلاغك بجاهزية بطاقة اشتراكك في مواقف السيارات لمدة سنة كاملة. يمكنك استخدام رمز QR للدخول المباشر.',
-    time: 'قبل ساعتين',
-    read: false,
-  },
-  {
-    id: 2,
-    title: 'تمت الموافقة على طلب الاشتراك الخاص بك 🎉',
-    desc: 'تم الانتهاء من مراجعة بياناتك ومستنداتك للطلب رقم PARK-2026-10482 واعتماد الأهلية.',
-    time: 'أمس - 09:00 ص',
-    read: true,
-  },
-  {
-    id: 3,
-    title: 'تم استلام وتوثيق مستندات الطلب 📄',
-    desc: 'تم استلام الهوية الوطنية ورخص القيادة والسير وجارٍ تحويلها لفريق التدقيق.',
-    time: '28 أغسطس 2026',
-    read: true,
-  },
-];
 
 const MawqifContext = createContext<MawqifContextType | undefined>(undefined);
 
@@ -117,60 +70,108 @@ export function MawqifProvider({ children }: { children: React.ReactNode }) {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [mounted, setMounted] = useState(false);
 
+  // Load active session from localStorage on mount
   useEffect(() => {
     setMounted(true);
-    const savedUser = localStorage.getItem('mawqif_user');
-    const savedApp = localStorage.getItem('mawqif_app');
-    const savedNotifs = localStorage.getItem('mawqif_notifs');
-    const savedAuth = localStorage.getItem('mawqif_auth');
+    const activeUserId = localStorage.getItem('mawqif_active_user_id');
+    const accountsStr = localStorage.getItem('mawqif_accounts_db');
 
-    if (savedAuth === 'true' && savedUser) {
+    if (activeUserId && accountsStr) {
       try {
-        setCurrentUser(JSON.parse(savedUser));
-        setIsLoggedIn(true);
-        if (savedApp) setUserApplication(JSON.parse(savedApp));
-        if (savedNotifs) setNotifications(JSON.parse(savedNotifs));
+        const accounts: Record<string, AccountRecord> = JSON.parse(accountsStr);
+        const activeAcc = accounts[activeUserId];
+        if (activeAcc && activeAcc.user) {
+          setCurrentUser(activeAcc.user);
+          setUserApplication(activeAcc.application || null);
+          setNotifications(activeAcc.notifications || []);
+          setIsLoggedIn(true);
+        }
       } catch (e) {
-        console.error('Failed to parse saved user', e);
+        console.error('Error loading session', e);
       }
     }
   }, []);
 
-  const login = (identifier: string) => {
-    // Check if we have registered user or use fallback
-    const savedUserStr = localStorage.getItem('mawqif_user');
-    let userToLog: MawqifUser = DEFAULT_USER;
-    if (savedUserStr) {
-      try {
-        const parsed = JSON.parse(savedUserStr);
-        if (parsed.email === identifier || parsed.phone === identifier || parsed.idNumber === identifier) {
-          userToLog = parsed;
-        }
-      } catch (e) {}
-    } else {
-      userToLog = {
-        ...DEFAULT_USER,
-        phone: identifier.startsWith('05') ? identifier : DEFAULT_USER.phone,
-        email: identifier.includes('@') ? identifier : DEFAULT_USER.email,
+  // Helper to persist accounts DB
+  const getAccountsDB = (): Record<string, AccountRecord> => {
+    try {
+      const dbStr = localStorage.getItem('mawqif_accounts_db');
+      return dbStr ? JSON.parse(dbStr) : {};
+    } catch {
+      return {};
+    }
+  };
+
+  const saveAccountsDB = (db: Record<string, AccountRecord>) => {
+    localStorage.setItem('mawqif_accounts_db', JSON.stringify(db));
+  };
+
+  const login = (identifier: string, password?: string): { success: boolean; error?: string } => {
+    const cleanId = identifier.trim();
+    if (!cleanId) {
+      return { success: false, error: 'يرجى إدخال رقم الجوال أو البريد الإلكتروني أو رقم الهوية.' };
+    }
+
+    const db = getAccountsDB();
+    const accountList = Object.values(db);
+
+    // Find account by phone, email, or idNumber
+    const foundAcc = accountList.find(
+      (acc) =>
+        acc.user.phone === cleanId ||
+        acc.user.email.toLowerCase() === cleanId.toLowerCase() ||
+        acc.user.idNumber === cleanId
+    );
+
+    if (!foundAcc) {
+      return {
+        success: false,
+        error: 'لا يوجد حساب مسجل بهذه البيانات. يرجى إنشاء حساب جديد أولاً.',
       };
     }
 
-    setCurrentUser(userToLog);
-    setIsLoggedIn(true);
-    setUserApplication(DEFAULT_APP);
-    setNotifications(DEFAULT_NOTIFS);
+    // Verify password if provided
+    if (password && foundAcc.user.password && foundAcc.user.password !== password) {
+      return {
+        success: false,
+        error: 'كلمة المرور غير صحيحة. يرجى التأكد وإعادة المحاولة.',
+      };
+    }
 
-    localStorage.setItem('mawqif_auth', 'true');
-    localStorage.setItem('mawqif_user', JSON.stringify(userToLog));
-    localStorage.setItem('mawqif_app', JSON.stringify(DEFAULT_APP));
-    localStorage.setItem('mawqif_notifs', JSON.stringify(DEFAULT_NOTIFS));
-    return true;
+    // Login successful
+    setCurrentUser(foundAcc.user);
+    setUserApplication(foundAcc.application || null);
+    setNotifications(foundAcc.notifications || []);
+    setIsLoggedIn(true);
+    localStorage.setItem('mawqif_active_user_id', foundAcc.user.id);
+
+    return { success: true };
   };
 
-  const register = (data: Partial<MawqifUser>) => {
-    const fullName = `${data.firstName || ''} ${data.fatherName || ''} ${data.familyName || ''}`.trim() || data.fullName || 'مستخدم مواقف';
+  const register = (data: Partial<MawqifUser>, password?: string): { success: boolean; error?: string } => {
+    const db = getAccountsDB();
+    const accountList = Object.values(db);
+
+    // Check if ID or phone already registered
+    const existing = accountList.find(
+      (acc) =>
+        (data.idNumber && acc.user.idNumber === data.idNumber) ||
+        (data.phone && acc.user.phone === data.phone) ||
+        (data.email && acc.user.email.toLowerCase() === data.email.toLowerCase())
+    );
+
+    if (existing) {
+      return {
+        success: false,
+        error: 'يوجد حساب مسجل بالفعل برقم الهوية أو الجوال أو البريد المدخل. يرجى تسجيل الدخول بدلاً من ذلك.',
+      };
+    }
+
+    const userId = `usr_${Date.now()}`;
+    const fullName = `${data.firstName || ''} ${data.fatherName || ''} ${data.familyName || ''}`.trim() || data.fullName || 'مستخدم جديد';
+
     const newUser: MawqifUser = {
-      id: `usr-${Date.now().toString().slice(-4)}`,
+      id: userId,
       firstName: data.firstName || '',
       fatherName: data.fatherName || '',
       familyName: data.familyName || '',
@@ -181,35 +182,49 @@ export function MawqifProvider({ children }: { children: React.ReactNode }) {
       city: data.city || 'الرياض',
       address: data.address || '',
       dateOfBirth: data.dateOfBirth || '',
+      password: password || '123456',
     };
 
-    setCurrentUser(newUser);
-    setIsLoggedIn(true);
-    setUserApplication(null); // Fresh registration has no application yet!
-    setNotifications([
+    const initialNotifs: NotificationItem[] = [
       {
         id: Date.now(),
-        title: 'مرحبًا بك في منصة مواقف 👋',
-        desc: 'تم إنشاء حسابك بنجاح! يمكنك الآن التقديم للحصول على اشتراك مجاني في المواقف لمدة سنة.',
+        title: `أهلاً بك يا ${newUser.firstName} في برنامج مواقف 👋`,
+        desc: 'تم تفعيل حسابك بنجاح! يمكنك الآن التقديم للحصول على اشتراك مجاني في المواقف لمدة 12 شهرًا.',
         time: 'الآن',
         read: false,
       },
-    ]);
+    ];
 
-    localStorage.setItem('mawqif_auth', 'true');
-    localStorage.setItem('mawqif_user', JSON.stringify(newUser));
-    localStorage.removeItem('mawqif_app');
-    return true;
+    const newRecord: AccountRecord = {
+      user: newUser,
+      application: null, // Empty until the user applies
+      notifications: initialNotifs,
+    };
+
+    db[userId] = newRecord;
+    saveAccountsDB(db);
+
+    // Activate session
+    setCurrentUser(newUser);
+    setUserApplication(null);
+    setNotifications(initialNotifs);
+    setIsLoggedIn(true);
+    localStorage.setItem('mawqif_active_user_id', userId);
+
+    return { success: true };
   };
 
   const logout = () => {
     setIsLoggedIn(false);
     setCurrentUser(null);
     setUserApplication(null);
-    localStorage.removeItem('mawqif_auth');
+    setNotifications([]);
+    localStorage.removeItem('mawqif_active_user_id');
   };
 
   const submitApplication = (formData: any) => {
+    if (!currentUser) return '';
+
     const randomId = `PARK-2026-${Math.floor(10000 + Math.random() * 90000)}`;
     const newApp: UserApplication = {
       id: randomId,
@@ -225,34 +240,52 @@ export function MawqifProvider({ children }: { children: React.ReactNode }) {
       ownerRelation: formData.ownerRelation,
     };
 
-    setUserApplication(newApp);
-    localStorage.setItem('mawqif_app', JSON.stringify(newApp));
-
     const newNotif: NotificationItem = {
       id: Date.now(),
       title: `تم إرسال طلب الاشتراك بنجاح (${randomId}) 📄`,
-      desc: 'تم استلام طلبك ومستنداتك وجارٍ تحويلها لفريق التدقيق للمراجعة والاعتماد.',
+      desc: 'تم استلام طلبك ومستنداتك بنجاح وجارٍ مراجعتها من قبل فريق التدقيق.',
       time: 'الآن',
       read: false,
     };
+
     const updatedNotifs = [newNotif, ...notifications];
+
+    setUserApplication(newApp);
     setNotifications(updatedNotifs);
-    localStorage.setItem('mawqif_notifs', JSON.stringify(updatedNotifs));
+
+    // Update in DB
+    const db = getAccountsDB();
+    if (db[currentUser.id]) {
+      db[currentUser.id].application = newApp;
+      db[currentUser.id].notifications = updatedNotifs;
+      saveAccountsDB(db);
+    }
 
     return randomId;
   };
 
   const updateProfile = (data: Partial<MawqifUser>) => {
     if (!currentUser) return;
-    const updated = { ...currentUser, ...data };
-    setCurrentUser(updated);
-    localStorage.setItem('mawqif_user', JSON.stringify(updated));
+    const updatedUser = { ...currentUser, ...data };
+    setCurrentUser(updatedUser);
+
+    const db = getAccountsDB();
+    if (db[currentUser.id]) {
+      db[currentUser.id].user = updatedUser;
+      saveAccountsDB(db);
+    }
   };
 
   const markNotificationsRead = () => {
-    const updated = notifications.map(n => ({ ...n, read: true }));
+    const updated = notifications.map((n) => ({ ...n, read: true }));
     setNotifications(updated);
-    localStorage.setItem('mawqif_notifs', JSON.stringify(updated));
+    if (currentUser) {
+      const db = getAccountsDB();
+      if (db[currentUser.id]) {
+        db[currentUser.id].notifications = updated;
+        saveAccountsDB(db);
+      }
+    }
   };
 
   return (

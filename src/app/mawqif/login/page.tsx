@@ -25,11 +25,19 @@ function LoginContent() {
       setError('يرجى إدخال رقم الجوال أو البريد الإلكتروني');
       return;
     }
+    if (!password.trim()) {
+      setError('يرجى إدخال كلمة المرور');
+      return;
+    }
     setIsLoading(true);
     setTimeout(() => {
-      login(identifier);
+      const result = login(identifier, password);
       setIsLoading(false);
-      router.push(redirectTarget);
+      if (!result.success) {
+        setError(result.error || 'خطأ في تسجيل الدخول');
+      } else {
+        router.push(redirectTarget);
+      }
     }, 500);
   };
 
