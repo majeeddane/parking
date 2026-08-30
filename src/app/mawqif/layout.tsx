@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "../globals.css";
 import "./mawqif.css";
+import { MawqifProvider } from "@/components/mawqif/MawqifContext";
 
 export const metadata: Metadata = {
   title: "مواقف | اشتراك مجاني في مواقف السيارات",
@@ -14,8 +15,10 @@ export default function MawqifLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="mawqif-root">
-      {children}
-    </div>
+    <MawqifProvider>
+      <div className="mawqif-root">
+        {children}
+      </div>
+    </MawqifProvider>
   );
 }

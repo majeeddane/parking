@@ -1,25 +1,58 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Menu, User, Phone, Mail, MapPin, Shield, Check, Save } from 'lucide-react';
 import MawqifSidebar from '@/components/mawqif/layout/MawqifSidebar';
+import { useMawqif } from '@/components/mawqif/MawqifContext';
 
 export default function UserProfilePage() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [saved, setSaved] = useState(false);
+  const { currentUser, updateProfile } = useMawqif();
 
   const [form, setForm] = useState({
-    fullName: 'محمد أحمد العتيبي',
-    idNumber: '1082345678',
-    phone: '0501234567',
-    email: 'm.otaibi@example.com',
-    city: 'الرياض',
-    address: 'حي النرجس، شارع أنس بن مالك',
+    fullName: '',
+    idNumber: '',
+    phone: '',
+    email: '',
+    city: '',
+    address: '',
   });
+
+  useEffect(() => {
+    if (currentUser) {
+      setForm({
+        fullName: currentUser.fullName || `${currentUser.firstName} ${currentUser.familyName}`,
+        idNumber: currentUser.idNumber || '',
+        phone: currentUser.phone || '',
+        email: currentUser.email || '',
+        city: currentUser.city || 'الرياض',
+        address: currentUser.address || 'العنوان الوطني',
+      });
+    }
+  }, [currentUser]);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
+    updateProfile({
+      phone: form.phone,
+      email: form.email,
+      city: form.city,
+      address: form.address,
+    });
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
+  };
+
+  const maskId = (id: string) => {
+    if (!id || id.length < 4) return '******';
+    return '******' + id.slice(-4);
+  };
+
+  const getInitials = (name?: string) => {
+    if (!name) return 'م';
+    const parts = name.split(' ');
+    if (parts.length >= 2) return `${parts[0][0]}.${parts[1][0]}`;
+    return name.slice(0, 2);
   };
 
   return (
@@ -50,11 +83,11 @@ export default function UserProfilePage() {
             {/* Top avatar info */}
             <div className="flex items-center gap-4 pb-6 border-b border-slate-100">
               <div className="w-16 h-16 rounded-full bg-[#123B5D] text-white text-xl font-bold flex items-center justify-center shadow-md">
-                م.ع
+                {getInitials(form.fullName)}
               </div>
               <div>
-                <h2 className="text-lg font-bold text-[#123B5D]">{form.fullName}</h2>
-                <span className="text-xs text-slate-400">مستفيد معتمد في برنامج مواقف</span>
+                <h2 className="text-lg font-bold text-[#123B5D]">{form.fullName || 'المستفيد'}</h2>
+                <span className="text-xs text-slate-400">حساب موثق في برنامج مواقف</span>
               </div>
             </div>
 
@@ -75,19 +108,19 @@ export default function UserProfilePage() {
                     className="mw-input bg-slate-50 text-slate-500 cursor-not-allowed"
                     value={form.fullName}
                   />
-                  <span className="text-[11px] text-slate-400">الاسم موثق بالهوية الوطنية</span>
+                  <span className="text-[11px] text-slate-400">الاسم موثق برقم الهوية الوطنية</span>
                 </div>
 
                 <div className="mw-form-group">
-                  <label className="mw-label">رقم الهوية الوطنية</label>
+                  <label className="mw-label">رقم الهوية الوطنية / الإقامة</label>
                   <input
                     type="text"
                     disabled
                     dir="ltr"
-                    className="mw-input bg-slate-50 text-slate-500 cursor-not-allowed text-right"
-                    value="******5678"
+                    className="mw-input bg-slate-50 text-slate-500 cursor-not-allowed text-right font-mono"
+                    value={maskId(form.idNumber)}
                   />
-                  <span className="text-[11px] text-slate-400">محمي بنظام التشفير</span>
+                  <span className="text-[11px] text-slate-400">مشفر ومحمي لأمانك</span>
                 </div>
               </div>
 

@@ -1,7 +1,8 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Car, Menu, X, Bell, User, LogIn, FileText, ChevronDown } from 'lucide-react';
+import { Car, Menu, X, Bell, User, LogIn, FileText, UserPlus, LogOut, LayoutDashboard } from 'lucide-react';
+import { useMawqif } from '@/components/mawqif/MawqifContext';
 
 const navLinks = [
   { href: '/mawqif', label: 'الرئيسية' },
@@ -15,12 +16,15 @@ const navLinks = [
 export default function MawqifNavbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const { currentUser, isLoggedIn, logout } = useMawqif();
 
-  if (typeof window !== 'undefined') {
-    window.addEventListener('scroll', () => {
+  useEffect(() => {
+    const handleScroll = () => {
       setScrolled(window.scrollY > 20);
-    }, { passive: true });
-  }
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
     <>
@@ -30,7 +34,7 @@ export default function MawqifNavbar() {
         right: 0,
         left: 0,
         zIndex: 100,
-        background: scrolled ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.97)',
+        background: scrolled ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.98)',
         backdropFilter: 'blur(12px)',
         borderBottom: '1px solid var(--mw-border)',
         transition: 'all 0.3s ease',
@@ -91,15 +95,39 @@ export default function MawqifNavbar() {
               ))}
             </div>
 
-            {/* CTA Buttons */}
+            {/* CTA Buttons - Reactive to Login State */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }} className="mw-hide-mobile">
-              <Link href="/mawqif/login" className="mw-btn mw-btn-outline mw-btn-sm" style={{ gap: '0.4rem' }}>
-                <LogIn size={15} />
-                تسجيل الدخول
-              </Link>
-              <Link href="/mawqif/apply" className="mw-btn mw-btn-primary mw-btn-sm">
-                قدّم طلبك الآن
-              </Link>
+              {isLoggedIn && currentUser ? (
+                <>
+                  <Link
+                    href="/mawqif/dashboard"
+                    className="mw-btn mw-btn-primary mw-btn-sm"
+                    style={{ gap: '0.4rem' }}
+                  >
+                    <LayoutDashboard size={15} />
+                    لوحة التحكم ({currentUser.firstName})
+                  </Link>
+                  <button
+                    onClick={logout}
+                    className="mw-btn mw-btn-ghost mw-btn-sm"
+                    style={{ gap: '0.3rem', color: '#DC2626' }}
+                    title="تسجيل الخروج"
+                  >
+                    <LogOut size={15} />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link href="/mawqif/login" className="mw-btn mw-btn-outline mw-btn-sm" style={{ gap: '0.4rem' }}>
+                    <LogIn size={15} />
+                    تسجيل الدخول
+                  </Link>
+                  <Link href="/mawqif/register" className="mw-btn mw-btn-primary mw-btn-sm" style={{ gap: '0.4rem' }}>
+                    <UserPlus size={15} />
+                    إنشاء حساب للتقديم
+                  </Link>
+                </>
+              )}
             </div>
 
             {/* Mobile Menu Button */}
@@ -163,6 +191,13 @@ export default function MawqifNavbar() {
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '1rem 0.75rem' }}>
+          {isLoggedIn && currentUser && (
+            <div style={{ padding: '0.75rem 1rem', background: 'var(--mw-bg)', borderRadius: '12px', marginBottom: '1rem' }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--mw-primary)' }}>مرحبًا، {currentUser.fullName}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--mw-accent)', fontWeight: 600 }}>مستفيد مسجل</div>
+            </div>
+          )}
+
           {navLinks.map(link => (
             <Link
               key={link.href}
@@ -176,12 +211,29 @@ export default function MawqifNavbar() {
         </div>
 
         <div style={{ padding: '1.25rem 1rem', borderTop: '1px solid var(--mw-border)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          <Link href="/mawqif/login" className="mw-btn mw-btn-outline mw-btn-full" onClick={() => setMobileOpen(false)}>
-            تسجيل الدخول
-          </Link>
-          <Link href="/mawqif/apply" className="mw-btn mw-btn-primary mw-btn-full" onClick={() => setMobileOpen(false)}>
-            قدّم طلبك الآن
-          </Link>
+          {isLoggedIn ? (
+            <>
+              <Link href="/mawqif/dashboard" className="mw-btn mw-btn-primary mw-btn-full" onClick={() => setMobileOpen(false)}>
+                لوحة تحكمي
+              </Link>
+              <button
+                onClick={() => { logout(); setMobileOpen(false); }}
+                className="mw-btn mw-btn-outline mw-btn-full"
+                style={{ color: '#DC2626' }}
+              >
+                تسجيل الخروج
+              </button>
+            </>
+          ) : (
+            <>
+              <Link href="/mawqif/login" className="mw-btn mw-btn-outline mw-btn-full" onClick={() => setMobileOpen(false)}>
+                تسجيل الدخول
+              </Link>
+              <Link href="/mawqif/register" className="mw-btn mw-btn-primary mw-btn-full" onClick={() => setMobileOpen(false)}>
+                إنشاء حساب جديد
+              </Link>
+            </>
+          )}
         </div>
       </div>
 

@@ -1,36 +1,65 @@
 'use client';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   FileText,
-  CreditCard,
   Car,
   Bell,
   User,
-  HelpCircle,
   LogOut,
   QrCode,
   ShieldCheck,
-  ChevronLeft
 } from 'lucide-react';
+import { useMawqif } from '@/components/mawqif/MawqifContext';
 
 interface Props {
   mobileOpen?: boolean;
   onCloseMobile?: () => void;
 }
 
-const navItems = [
-  { href: '/mawqif/dashboard', label: 'الرئيسية', icon: LayoutDashboard },
-  { href: '/mawqif/dashboard/subscription', label: 'بطاقة اشتراكي', icon: QrCode, badge: 'فعال' },
-  { href: '/mawqif/dashboard/applications', label: 'طلباتي', icon: FileText, badge: '1' },
-  { href: '/mawqif/dashboard/vehicles', label: 'مركباتي', icon: Car },
-  { href: '/mawqif/dashboard/notifications', label: 'الإشعارات', icon: Bell, badgeDot: true },
-  { href: '/mawqif/dashboard/profile', label: 'بياناتي الشخصية', icon: User },
-];
-
 export default function MawqifSidebar({ mobileOpen, onCloseMobile }: Props) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { currentUser, userApplication, logout, notifications } = useMawqif();
+
+  const unreadNotifs = notifications.filter(n => !n.read).length;
+
+  const navItems = [
+    { href: '/mawqif/dashboard', label: 'الرئيسية', icon: LayoutDashboard },
+    {
+      href: '/mawqif/dashboard/subscription',
+      label: 'بطاقة اشتراكي',
+      icon: QrCode,
+      badge: userApplication?.status === 'approved' ? 'فعال' : userApplication ? 'قيد المراجعة' : undefined,
+    },
+    {
+      href: '/mawqif/dashboard/applications',
+      label: 'طلباتي',
+      icon: FileText,
+      badge: userApplication ? '1' : '0',
+    },
+    { href: '/mawqif/dashboard/vehicles', label: 'مركباتي', icon: Car },
+    {
+      href: '/mawqif/dashboard/notifications',
+      label: 'الإشعارات',
+      icon: Bell,
+      badgeDot: unreadNotifs > 0,
+    },
+    { href: '/mawqif/dashboard/profile', label: 'بياناتي الشخصية', icon: User },
+  ];
+
+  const getInitials = (name?: string) => {
+    if (!name) return 'م';
+    const parts = name.split(' ');
+    if (parts.length >= 2) return `${parts[0][0]}.${parts[1][0]}`;
+    return name.slice(0, 2);
+  };
+
+  const handleLogout = () => {
+    logout();
+    router.push('/mawqif');
+  };
 
   return (
     <>
@@ -66,16 +95,18 @@ export default function MawqifSidebar({ mobileOpen, onCloseMobile }: Props) {
           )}
         </div>
 
-        {/* User Quick Profile Snippet */}
+        {/* User Dynamic Profile Snippet */}
         <div className="p-4 mx-3 my-3 rounded-2xl bg-slate-50 border border-slate-100 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-[#123B5D] text-white font-bold text-sm flex items-center justify-center shrink-0">
-            م.ع
+          <div className="w-10 h-10 rounded-full bg-[#123B5D] text-white font-bold text-xs flex items-center justify-center shrink-0">
+            {getInitials(currentUser?.fullName)}
           </div>
           <div className="truncate">
-            <div className="text-xs font-bold text-[#123B5D] truncate">محمد أحمد العتيبي</div>
+            <div className="text-xs font-bold text-[#123B5D] truncate">
+              {currentUser?.fullName || 'مستفيد مسجل'}
+            </div>
             <div className="text-[11px] text-[#19A974] font-semibold flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-[#19A974] inline-block" />
-              مستفيد معتمد
+              حساب موثق
             </div>
           </div>
         </div>
@@ -129,13 +160,13 @@ export default function MawqifSidebar({ mobileOpen, onCloseMobile }: Props) {
             <ShieldCheck size={16} />
             <span>لوحة الإدارة (Admin)</span>
           </Link>
-          <Link
-            href="/mawqif"
-            className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-xl transition-colors text-right"
           >
             <LogOut size={16} />
             <span>تسجيل الخروج</span>
-          </Link>
+          </button>
         </div>
       </aside>
     </>
