@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -17,7 +17,11 @@ import {
   X,
   Send,
   ZoomIn,
-  ShieldCheck
+  ShieldCheck,
+  Phone,
+  Mail,
+  MapPin,
+  Calendar
 } from 'lucide-react';
 import AdminSidebar from '@/components/mawqif/layout/AdminSidebar';
 import StatusBadge, { StatusType } from '@/components/mawqif/ui/StatusBadge';
@@ -29,6 +33,22 @@ export default function AdminReviewApplicationPage() {
 
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [currentStatus, setCurrentStatus] = useState<StatusType>('pending');
+  const [applicantData, setApplicantData] = useState<any>({
+    fullName: 'محمد أحمد العتيبي',
+    idNumber: '1082345678',
+    phone: '0501234567',
+    email: 'm.otaibi@example.com',
+    city: 'الرياض',
+    address: 'حي النرجس، شارع أنس بن مالك',
+    vehicleMake: 'Toyota',
+    vehicleModel: 'Camry',
+    vehicleYear: '2024',
+    vehicleColor: 'أبيض لؤلؤي',
+    plateNumber: 'أ ب ج 1234',
+    vehicleLicenseNumber: '2049182390',
+    submissionDate: '28 أغسطس 2026',
+  });
+
   const [docStatuses, setDocStatuses] = useState<Record<string, 'approved' | 'rejected' | 'pending'>>({
     id: 'pending',
     driving: 'pending',
@@ -44,32 +64,134 @@ export default function AdminReviewApplicationPage() {
   const [zoomModalImage, setZoomModalImage] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  // Load actual user application data from DB if exists
+  useEffect(() => {
+    try {
+      const dbStr = typeof window !== 'undefined' ? localStorage.getItem('mawqif_accounts_db') : null;
+      if (dbStr) {
+        const db = JSON.parse(dbStr);
+        for (const userId in db) {
+          const acc = db[userId];
+          if (acc?.application && (acc.application.id === appId || acc.application.subscriptionNumber === appId)) {
+            setCurrentStatus(acc.application.status || 'pending');
+            setApplicantData({
+              fullName: acc.user.fullName || `${acc.user.firstName} ${acc.user.familyName}`,
+              idNumber: acc.user.idNumber,
+              phone: acc.user.phone,
+              email: acc.user.email,
+              city: acc.user.city || 'الرياض',
+              address: acc.user.address || 'العنوان المسجل',
+              vehicleMake: acc.application.vehicleMake || 'Toyota',
+              vehicleModel: acc.application.vehicleModel || 'Camry',
+              vehicleYear: acc.application.vehicleYear || '2024',
+              vehicleColor: acc.application.vehicleColor || 'فضي',
+              plateNumber: acc.application.plateNumber || 'أ ب ج 1234',
+              vehicleLicenseNumber: acc.application.vehicleLicenseNumber || '2049182390',
+              submissionDate: acc.application.submissionDate || 'اليوم',
+            });
+            break;
+          }
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, [appId]);
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  const updateApplicationInDB = (
+    newStatus: StatusType,
+    notificationTitle: string,
+    notificationDesc: string,
+    extraFields?: Record<string, any>
+  ) => {
+    try {
+      const dbStr = typeof window !== 'undefined' ? localStorage.getItem('mawqif_accounts_db') : null;
+      if (dbStr) {
+        const db = JSON.parse(dbStr);
+        let found = false;
+
+        for (const userId in db) {
+          const acc = db[userId];
+          if (acc?.application && (acc.application.id === appId || acc.application.subscriptionNumber === appId)) {
+            acc.application.status = newStatus;
+            if (extraFields) {
+              Object.assign(acc.application, extraFields);
+            }
+
+            const newNotif = {
+              id: Date.now(),
+              title: notificationTitle,
+              desc: notificationDesc,
+              time: 'الآن',
+              read: false,
+            };
+            acc.notifications = [newNotif, ...(acc.notifications || [])];
+            found = true;
+            break;
+          }
+        }
+
+        if (found) {
+          localStorage.setItem('mawqif_accounts_db', JSON.stringify(db));
+        }
+      }
+    } catch (e) {
+      console.error('Error updating status in DB:', e);
+    }
   };
 
   const handleApprove = () => {
     setCurrentStatus('approved');
-    showToast('تمت الموافقة على الطلب وإصدار بطاقة الاشتراك بنجاح!');
+    updateApplicationInDB(
+      'approved',
+      `🎉 تم اعتماد طلب اشتراكك (${appId}) وتفعيل البطاقة الرسمية!`,
+      `يسرنا إبلاغك بجاهزية بطاقة اشتراكك في مواقف السيارات لمدة سنة كاملة مجاناً. يمكنك الآن فتح بطاقتك الرقمية برمز QR واستخدامها للدخول المباشر.`,
+      {
+        subscriptionNumber: appId,
+        subscriptionStartDate: '01 سبتمبر 2026',
+        subscriptionEndDate: '31 أغسطس 2027',
+      }
+    );
+    showToast('تمت الموافقة على الطلب بنجاح وتفعيل البطاقة الرقمية في حساب المستفيد!');
   };
 
   const handleRejectConfirm = () => {
     if (!rejectionReason.trim()) return;
     setCurrentStatus('rejected');
     setRejectionModalOpen(false);
-    showToast('تم رفض الطلب وإرسال سبب الرفض إلى المتقدم.');
+    updateApplicationInDB(
+      'rejected',
+      `❌ تم رفض طلب الاشتراك (${appId})`,
+      `نعتذر منك، لم تتم الموافقة على طلب الاشتراك للأسباب التالية: ${rejectionReason}`,
+      {
+        rejectionReason,
+      }
+    );
+    showToast('تم رفض الطلب وإرسال سبب الرفض إلى حساب المستفيد.');
   };
 
   const handleModConfirm = () => {
     if (!modNote.trim()) return;
     setCurrentStatus('needs_edit');
     setModModalOpen(false);
-    showToast('تم إرسال طلب التعديل إلى المتقدم.');
+    updateApplicationInDB(
+      'needs_edit',
+      `⚠️ مطلوب تعديل مستندات لطلبك (${appId})`,
+      `يرجى تعديل وإعادة رفع المستند المطلوب: ${modNote}`,
+      {
+        rejectionReason: modNote,
+      }
+    );
+    showToast('تم إرسال طلب التعديل إلى حساب المستفيد بنجاح.');
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F9FC] flex">
+    <div className="min-h-screen bg-[#F7F9FC] flex font-sans">
       <AdminSidebar
         mobileOpen={mobileSidebarOpen}
         onCloseMobile={() => setMobileSidebarOpen(false)}
@@ -93,15 +215,16 @@ export default function AdminReviewApplicationPage() {
             </div>
           </div>
 
-          <div>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-slate-400 hidden sm:inline-block">حالة الطلب الحالية:</span>
             <StatusBadge status={currentStatus} size="md" />
           </div>
         </header>
 
         {/* Toast Notification */}
         {toastMessage && (
-          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-[#123B5D] text-white text-xs md:text-sm font-bold py-3 px-6 rounded-2xl shadow-xl flex items-center gap-2 mw-animate-scaleIn">
-            <CheckCircle2 size={18} className="text-[#19A974]" />
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-[#123B5D] text-white text-xs md:text-sm font-bold py-3.5 px-6 rounded-2xl shadow-2xl flex items-center gap-2.5 mw-animate-scaleIn border border-white/20">
+            <CheckCircle2 size={20} className="text-[#19A974]" />
             {toastMessage}
           </div>
         )}
@@ -113,16 +236,16 @@ export default function AdminReviewApplicationPage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h1 className="text-xl md:text-2xl font-extrabold text-[#123B5D]">
-                تدقيق طلب الاشتراك #{appId}
+                تدقيق وفحص طلب الاشتراك #{appId}
               </h1>
               <p className="text-xs text-slate-400">
-                تاريخ التقديم: 28 أغسطس 2026 · مقدم الطلب: محمد أحمد العتيبي
+                تاريخ التقديم: {applicantData.submissionDate} · مقدم الطلب: {applicantData.fullName}
               </p>
             </div>
 
             <Link
               href="/mawqif/admin"
-              className="mw-btn mw-btn-outline text-xs py-2 px-4 bg-white"
+              className="mw-btn mw-btn-outline text-xs py-2 px-4 bg-white font-bold"
             >
               <ChevronRight size={16} />
               العودة لقائمة الطلبات
@@ -142,23 +265,23 @@ export default function AdminReviewApplicationPage() {
               <div className="grid grid-cols-2 gap-3 text-xs md:text-sm">
                 <div>
                   <span className="text-slate-400 block text-xs">الاسم الثلاثي</span>
-                  <span className="font-bold text-slate-800">محمد أحمد العتيبي</span>
+                  <span className="font-bold text-slate-800">{applicantData.fullName}</span>
                 </div>
                 <div>
                   <span className="text-slate-400 block text-xs">رقم الهوية الوطنية</span>
-                  <span className="font-bold font-mono text-slate-800" dir="ltr">1082345678</span>
+                  <span className="font-bold font-mono text-slate-800" dir="ltr">{applicantData.idNumber}</span>
                 </div>
                 <div>
                   <span className="text-slate-400 block text-xs">رقم الجوال</span>
-                  <span className="font-bold font-mono text-slate-800" dir="ltr">0501234567</span>
+                  <span className="font-bold font-mono text-slate-800" dir="ltr">{applicantData.phone}</span>
                 </div>
                 <div>
                   <span className="text-slate-400 block text-xs">البريد الإلكتروني</span>
-                  <span className="font-semibold text-slate-800">m.otaibi@example.com</span>
+                  <span className="font-semibold text-slate-800">{applicantData.email}</span>
                 </div>
                 <div className="col-span-2">
                   <span className="text-slate-400 block text-xs">المدينة والعنوان</span>
-                  <span className="font-semibold text-slate-800">الرياض - حي النرجس، شارع أنس بن مالك</span>
+                  <span className="font-semibold text-slate-800">{applicantData.city} - {applicantData.address}</span>
                 </div>
               </div>
             </div>
@@ -167,32 +290,32 @@ export default function AdminReviewApplicationPage() {
             <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
               <div className="flex items-center gap-2 text-[#123B5D] font-bold border-b border-slate-100 pb-3">
                 <Car size={18} className="text-[#1677A8]" />
-                <span>بيانات المركبة المطلوبة</span>
+                <span>بيانات المركبة المطلوبة للترخيص</span>
               </div>
 
               <div className="grid grid-cols-2 gap-3 text-xs md:text-sm">
                 <div>
                   <span className="text-slate-400 block text-xs">الشركة والموديل</span>
-                  <span className="font-bold text-slate-800">Toyota Camry</span>
+                  <span className="font-bold text-slate-800">{applicantData.vehicleMake} {applicantData.vehicleModel}</span>
                 </div>
                 <div>
                   <span className="text-slate-400 block text-xs">سنة الصنع / اللون</span>
-                  <span className="font-semibold text-slate-800">2024 (أبيض لؤلؤي)</span>
+                  <span className="font-semibold text-slate-800">{applicantData.vehicleYear} ({applicantData.vehicleColor})</span>
                 </div>
                 <div>
                   <span className="text-slate-400 block text-xs">رقم اللوحة</span>
                   <span className="font-bold text-[#123B5D] bg-slate-100 px-2 py-0.5 rounded border border-slate-200 inline-block font-mono">
-                    أ ب ج 1234
+                    {applicantData.plateNumber}
                   </span>
                 </div>
                 <div>
                   <span className="text-slate-400 block text-xs">رقم الاستمارة</span>
-                  <span className="font-bold font-mono text-slate-800" dir="ltr">2049182390</span>
+                  <span className="font-bold font-mono text-slate-800" dir="ltr">{applicantData.vehicleLicenseNumber}</span>
                 </div>
                 <div className="col-span-2">
-                  <span className="text-slate-400 block text-xs">حالة الملكية</span>
+                  <span className="text-slate-400 block text-xs">نوع الاشتراك</span>
                   <span className="font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full inline-block">
-                    مملوكة للمتقدم مباشرة
+                    اشتراك مجاني سنوي (365 يوماً)
                   </span>
                 </div>
               </div>
@@ -393,23 +516,23 @@ export default function AdminReviewApplicationPage() {
 
           {/* Section: Final Decision Panel */}
           <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-lg space-y-4">
-            <h3 className="font-bold text-base text-[#123B5D]">القرار النهائي للمشرف</h3>
+            <h3 className="font-bold text-base text-[#123B5D]">القرار النهائي للمشرف والدعم الفني</h3>
             <p className="text-xs text-slate-500">
-              اتخاذ القرار النهائي سيحدث حالة الطلب مباشرة ويرسل إشعارًا للمستفيد.
+              اتخاذ القرار هنا سيحدث حالة الطلب مباشرة في حساب المستفيد ويرسل إشعاراً فورياً له بالنتيجة.
             </p>
 
             <div className="flex flex-wrap items-center gap-3 pt-2">
               <button
                 onClick={handleApprove}
-                className="mw-btn mw-btn-success text-xs md:text-sm font-bold flex-1 min-w-[160px] py-3"
+                className="mw-btn mw-btn-success text-xs md:text-sm font-bold flex-1 min-w-[160px] py-3.5 shadow-md shadow-emerald-950/10"
               >
                 <CheckCircle2 size={18} />
-                الموافقة على الطلب وإصدار الاشتراك
+                الموافقة على الطلب وتفعيل بطاقة الاشتراك
               </button>
 
               <button
                 onClick={() => setModModalOpen(true)}
-                className="mw-btn mw-btn-warning text-xs md:text-sm font-bold flex-1 min-w-[160px] py-3"
+                className="mw-btn mw-btn-warning text-xs md:text-sm font-bold flex-1 min-w-[160px] py-3.5 shadow-md shadow-amber-950/10 text-white"
               >
                 <AlertCircle size={18} />
                 طلب تعديل مستندات
@@ -417,7 +540,7 @@ export default function AdminReviewApplicationPage() {
 
               <button
                 onClick={() => setRejectionModalOpen(true)}
-                className="mw-btn mw-btn-danger text-xs md:text-sm font-bold flex-1 min-w-[160px] py-3"
+                className="mw-btn mw-btn-danger text-xs md:text-sm font-bold flex-1 min-w-[160px] py-3.5 shadow-md shadow-red-950/10 text-white"
               >
                 <XCircle size={18} />
                 رفض الطلب

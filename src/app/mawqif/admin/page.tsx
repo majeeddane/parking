@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Menu,
@@ -18,7 +18,8 @@ import {
   TrendingUp,
   Download,
   Users,
-  Car
+  Car,
+  RefreshCw
 } from 'lucide-react';
 import AdminSidebar from '@/components/mawqif/layout/AdminSidebar';
 import StatusBadge, { StatusType } from '@/components/mawqif/ui/StatusBadge';
@@ -101,10 +102,44 @@ export default function AdminDashboardPage() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [sortBy, setSortBy] = useState<'newest' | 'oldest'>('newest');
+  const [records, setRecords] = useState<AdminAppRecord[]>(ADMIN_APPLICATIONS);
+
+  const loadData = () => {
+    try {
+      const dbStr = typeof window !== 'undefined' ? localStorage.getItem('mawqif_accounts_db') : null;
+      if (dbStr) {
+        const db = JSON.parse(dbStr);
+        const realApps: AdminAppRecord[] = [];
+        Object.values(db).forEach((acc: any) => {
+          if (acc?.application) {
+            realApps.push({
+              id: acc.application.id,
+              applicantName: acc.user.fullName || acc.user.firstName,
+              idNumber: acc.user.idNumber,
+              phone: acc.user.phone,
+              vehicle: `${acc.application.vehicleMake || ''} ${acc.application.vehicleModel || ''}`.trim() || 'مركبة مسجلة',
+              plate: acc.application.plateNumber || '—',
+              submissionDate: acc.application.submissionDate || 'اليوم',
+              status: acc.application.status || 'pending',
+            });
+          }
+        });
+
+        const existingIds = new Set(realApps.map((a) => a.id));
+        const combined = [...realApps, ...ADMIN_APPLICATIONS.filter((a) => !existingIds.has(a.id))];
+        setRecords(combined);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   // Filter & Search Logic
-  const filteredRecords = ADMIN_APPLICATIONS.filter((app) => {
+  const filteredRecords = records.filter((app) => {
     const matchSearch =
       app.applicantName.includes(search) ||
       app.id.toLowerCase().includes(search.toLowerCase()) ||
@@ -115,8 +150,12 @@ export default function AdminDashboardPage() {
     return matchSearch && matchStatus;
   });
 
+  const pendingCount = records.filter(r => r.status === 'pending').length;
+  const approvedCount = records.filter(r => r.status === 'approved' || r.status === 'completed').length;
+  const rejectedCount = records.filter(r => r.status === 'rejected').length;
+
   return (
-    <div className="min-h-screen bg-[#F7F9FC] flex">
+    <div className="min-h-screen bg-[#F7F9FC] flex font-sans">
       <AdminSidebar
         mobileOpen={mobileSidebarOpen}
         onCloseMobile={() => setMobileSidebarOpen(false)}
@@ -134,58 +173,59 @@ export default function AdminDashboardPage() {
               <Menu size={20} />
             </button>
             <h1 className="text-base md:text-lg font-bold text-[#123B5D]">
-              لوحة القيادة والمتابعة التشغيلية
+              لوحة قيادة إدارة المشرف والدعم الفني
             </h1>
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={loadData}
+              className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-colors"
+            >
+              <RefreshCw size={13} />
+              تحديث البيانات
+            </button>
             <span className="text-xs bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full font-bold border border-emerald-200 hidden sm:inline-block">
-              ● النظام متصل ويعمل بكفاءة
+              ● متصل بلوحة المشرف
             </span>
           </div>
         </header>
 
         <main className="p-4 md:p-8 space-y-6 max-w-7xl">
           
-          {/* 6 Key Performance Metric Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
+          {/* Key Performance Metric Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
             
             <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-1">
               <span className="text-[11px] text-slate-400 font-semibold block">إجمالي الطلبات</span>
-              <span className="text-xl md:text-2xl font-black text-[#123B5D] block">1,482</span>
+              <span className="text-xl md:text-2xl font-black text-[#123B5D] block">{records.length}</span>
               <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-0.5">
-                <TrendingUp size={12} /> +12% هذا الأسبوع
+                <TrendingUp size={12} /> محدث تلقائياً
               </span>
             </div>
 
             <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-1">
-              <span className="text-[11px] text-slate-400 font-semibold block">الطلبات الجديدة</span>
-              <span className="text-xl md:text-2xl font-black text-[#1677A8] block">38</span>
-              <span className="text-[10px] text-cyan-600 font-semibold">بانتظار الفرز</span>
+              <span className="text-[11px] text-slate-400 font-semibold block">قيد المراجعة</span>
+              <span className="text-xl md:text-2xl font-black text-amber-500 block">{pendingCount}</span>
+              <span className="text-[10px] text-amber-600 font-semibold">بانتظار قرار المشرف</span>
             </div>
 
             <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-1">
-              <span className="text-[11px] text-slate-400 font-semibold block">قيد التدقيق</span>
-              <span className="text-xl md:text-2xl font-black text-amber-500 block">42</span>
-              <span className="text-[10px] text-amber-600 font-semibold">جارٍ المراجعة</span>
-            </div>
-
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-1">
-              <span className="text-[11px] text-slate-400 font-semibold block">الطلبات المقبولة</span>
-              <span className="text-xl md:text-2xl font-black text-[#19A974] block">1,290</span>
-              <span className="text-[10px] text-emerald-600 font-semibold">نسبة قبول 94%</span>
+              <span className="text-[11px] text-slate-400 font-semibold block">الطلبات المعتمدة</span>
+              <span className="text-xl md:text-2xl font-black text-[#19A974] block">{approvedCount}</span>
+              <span className="text-[10px] text-emerald-600 font-semibold">اشتراكات مفعلة</span>
             </div>
 
             <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-1">
               <span className="text-[11px] text-slate-400 font-semibold block">الطلبات المرفوضة</span>
-              <span className="text-xl md:text-2xl font-black text-red-500 block">112</span>
-              <span className="text-[10px] text-red-500 font-semibold">عدم استيفاء الشروط</span>
+              <span className="text-xl md:text-2xl font-black text-red-500 block">{rejectedCount}</span>
+              <span className="text-[10px] text-red-500 font-semibold">غير مستوفية الشروط</span>
             </div>
 
             <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-1">
-              <span className="text-[11px] text-slate-400 font-semibold block">الاشتراكات الفعالة</span>
-              <span className="text-xl md:text-2xl font-black text-[#123B5D] block">1,215</span>
-              <span className="text-[10px] text-[#19A974] font-semibold">بطاقات نشطة</span>
+              <span className="text-[11px] text-slate-400 font-semibold block">المواقف المعتمدة</span>
+              <span className="text-xl md:text-2xl font-black text-[#123B5D] block">42 موقفاً</span>
+              <span className="text-[10px] text-[#1677A8] font-semibold">بوابات إلكترونية</span>
             </div>
 
           </div>
@@ -197,10 +237,10 @@ export default function AdminDashboardPage() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2">
               <div>
                 <h2 className="text-base md:text-lg font-bold text-[#123B5D]">
-                  جدول طلبات الاشتراك
+                  جدول طلبات الاشتراكات (فحص، اعتماد، رفض)
                 </h2>
                 <p className="text-xs text-slate-400">
-                  عرض وتدقيق والبت في طلبات الاشتراكات المجانية الواردة
+                  انقر على زر "مراجعة الطلب" للدخول لفحص مستندات المتقدم والموافقة أو الرفض
                 </p>
               </div>
 
@@ -224,11 +264,11 @@ export default function AdminDashboardPage() {
                   onChange={(e) => setStatusFilter(e.target.value)}
                   className="px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none text-slate-700 font-semibold cursor-pointer"
                 >
-                  <option value="all">جميع الحالات</option>
-                  <option value="pending">قيد المراجعة</option>
-                  <option value="approved">تمت الموافقة</option>
+                  <option value="all">جميع الحالات ({records.length})</option>
+                  <option value="pending">قيد المراجعة ({pendingCount})</option>
+                  <option value="approved">تمت الموافقة ({approvedCount})</option>
                   <option value="needs_edit">يحتاج تعديل</option>
-                  <option value="rejected">مرفوض</option>
+                  <option value="rejected">مرفوض ({rejectedCount})</option>
                 </select>
 
                 <button
@@ -279,10 +319,10 @@ export default function AdminDashboardPage() {
                       <td>
                         <Link
                           href={`/mawqif/admin/application/${app.id}`}
-                          className="mw-btn mw-btn-primary text-xs py-1 px-3"
+                          className="mw-btn mw-btn-primary text-xs py-1 px-3 font-bold"
                         >
                           <Eye size={13} />
-                          مراجعة الطلب
+                          مراجعة الطلب والبت فيه
                         </Link>
                       </td>
                     </tr>
@@ -291,20 +331,10 @@ export default function AdminDashboardPage() {
               </table>
             </div>
 
-            {/* Pagination Controls */}
+            {/* Footer Count */}
             <div className="flex items-center justify-between pt-4 border-t border-slate-100 text-xs text-slate-500">
               <div>
-                عرض 1 إلى {filteredRecords.length} من أصل {ADMIN_APPLICATIONS.length} طلب
-              </div>
-              <div className="flex items-center gap-1">
-                <button className="px-2 py-1 rounded border border-slate-200 hover:bg-slate-50 disabled:opacity-40" disabled>
-                  <ChevronRight size={14} />
-                </button>
-                <button className="px-3 py-1 rounded bg-[#123B5D] text-white font-bold">1</button>
-                <button className="px-3 py-1 rounded hover:bg-slate-100">2</button>
-                <button className="px-2 py-1 rounded border border-slate-200 hover:bg-slate-50">
-                  <ChevronLeft size={14} />
-                </button>
+                عرض {filteredRecords.length} من إجمالي {records.length} طلب
               </div>
             </div>
 
