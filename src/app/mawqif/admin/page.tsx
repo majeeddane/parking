@@ -103,40 +103,62 @@ export default function AdminDashboardPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [records, setRecords] = useState<AdminAppRecord[]>(ADMIN_APPLICATIONS);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const loadData = () => {
+  const loadData = async () => {
+    setIsRefreshing(true);
     try {
-      const dbStr = typeof window !== 'undefined' ? localStorage.getItem('mawqif_accounts_db') : null;
-      if (dbStr) {
-        const db = JSON.parse(dbStr);
-        const realApps: AdminAppRecord[] = [];
-        Object.values(db).forEach((acc: any) => {
-          if (acc?.application) {
-            realApps.push({
-              id: acc.application.id,
-              applicantName: acc.user.fullName || acc.user.firstName,
-              idNumber: acc.user.idNumber,
-              phone: acc.user.phone,
-              vehicle: `${acc.application.vehicleMake || ''} ${acc.application.vehicleModel || ''}`.trim() || 'مركبة مسجلة',
-              plate: acc.application.plateNumber || '—',
-              submissionDate: acc.application.submissionDate || 'اليوم',
-              status: acc.application.status || 'pending',
-            });
-          }
-        });
-
-        const existingIds = new Set(realApps.map((a) => a.id));
-        const combined = [...realApps, ...ADMIN_APPLICATIONS.filter((a) => !existingIds.has(a.id))];
-        setRecords(combined);
+      // 1. Fetch live from server DB
+      const res = await fetch('/api/mawqif/db', { cache: 'no-store' });
+      const json = await res.json();
+      
+      let db = json.data || {};
+      if (typeof window !== 'undefined') {
+        const localDbStr = localStorage.getItem('mawqif_accounts_db');
+        if (localDbStr) {
+          const localDb = JSON.parse(localDbStr);
+          db = { ...db, ...localDb };
+        }
       }
+
+      const realApps: AdminAppRecord[] = [];
+      Object.values(db).forEach((acc: any) => {
+        if (acc?.application) {
+          realApps.push({
+            id: acc.application.id,
+            applicantName: acc.user?.fullName || acc.user?.firstName || 'مستفيد جديد',
+            idNumber: acc.user?.idNumber || '—',
+            phone: acc.user?.phone || '—',
+            vehicle: `${acc.application.vehicleMake || ''} ${acc.application.vehicleModel || ''}`.trim() || 'مركبة مسجلة',
+            plate: acc.application.plateNumber || '—',
+            submissionDate: acc.application.submissionDate || 'اليوم',
+            status: acc.application.status || 'pending',
+          });
+        }
+      });
+
+      const existingIds = new Set(realApps.map((a) => a.id));
+      const combined = [...realApps, ...ADMIN_APPLICATIONS.filter((a) => !existingIds.has(a.id))];
+      setRecords(combined);
     } catch (e) {
       console.error(e);
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
   useEffect(() => {
     loadData();
+    // Auto-refresh every 15 seconds to receive applications from any device
+    const interval = setInterval(loadData, 15000);
+    return () => clearInterval(interval);
   }, []);
+
+  const handleAdminLogout = () => {
+    sessionStorage.removeItem('mawqif_admin_auth');
+    localStorage.removeItem('mawqif_admin_auth');
+    window.location.reload();
+  };
 
   // Filter & Search Logic
   const filteredRecords = records.filter((app) => {
@@ -180,14 +202,20 @@ export default function AdminDashboardPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={loadData}
-              className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-colors"
+              disabled={isRefreshing}
+              className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
             >
-              <RefreshCw size={13} />
+              <RefreshCw size={13} className={isRefreshing ? 'animate-spin text-[#1677A8]' : ''} />
               تحديث البيانات
             </button>
-            <span className="text-xs bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full font-bold border border-emerald-200 hidden sm:inline-block">
-              ● متصل بلوحة المشرف
-            </span>
+
+            <button
+              onClick={handleAdminLogout}
+              className="text-xs bg-red-50 hover:bg-red-100 text-red-700 px-3 py-1.5 rounded-xl font-bold border border-red-200 transition-colors cursor-pointer"
+              title="قفل لوحة المشرف وتسجيل الخروج"
+            >
+              قفل اللوحة والخروج
+            </button>
           </div>
         </header>
 

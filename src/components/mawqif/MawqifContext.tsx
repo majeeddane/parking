@@ -83,7 +83,7 @@ export function MawqifProvider({ children }: { children: React.ReactNode }) {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [mounted, setMounted] = useState(false);
 
-  // Load active session from localStorage on mount
+  // Load active session from localStorage and sync from server on mount
   useEffect(() => {
     setMounted(true);
     const activeUserId = localStorage.getItem('mawqif_active_user_id');
@@ -103,6 +103,34 @@ export function MawqifProvider({ children }: { children: React.ReactNode }) {
         console.error('Error loading session', e);
       }
     }
+
+    // Sync from server
+    fetch('/api/mawqif/db')
+      .then(res => res.json())
+      .then(json => {
+        if (json.success && json.data) {
+          const serverDB = json.data;
+          const localDB = getAccountsDB();
+          const merged = { ...serverDB, ...localDB };
+          localStorage.setItem('mawqif_accounts_db', JSON.stringify(merged));
+
+          // Also push localDB to server to ensure 100% sync
+          fetch('/api/mawqif/db', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'sync_all', allAccounts: merged }),
+          }).catch(() => {});
+
+          if (activeUserId && merged[activeUserId]) {
+            const currentAcc = merged[activeUserId];
+            setCurrentUser(currentAcc.user);
+            setUserApplication(currentAcc.application || null);
+            setNotifications(currentAcc.notifications || []);
+            setIsLoggedIn(true);
+          }
+        }
+      })
+      .catch(() => {});
   }, []);
 
   // Helper to persist accounts DB
@@ -117,6 +145,12 @@ export function MawqifProvider({ children }: { children: React.ReactNode }) {
 
   const saveAccountsDB = (db: Record<string, AccountRecord>) => {
     localStorage.setItem('mawqif_accounts_db', JSON.stringify(db));
+    // Persist to server API in background
+    fetch('/api/mawqif/db', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'sync_all', allAccounts: db }),
+    }).catch(err => console.error('Failed to sync with server:', err));
   };
 
   const login = (identifier: string, password?: string): { success: boolean; error?: string } => {

@@ -67,39 +67,63 @@ export default function AdminReviewApplicationPage() {
   const [zoomModalImage, setZoomModalImage] = useState<{ src: string; title: string; name?: string } | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Load actual user application data from DB if exists
+  // Load actual user application data - first from localStorage, then sync from server
+  const loadAppData = async (db: Record<string, any>) => {
+    for (const userId in db) {
+      const acc = db[userId];
+      if (acc?.application && (acc.application.id === appId || acc.application.subscriptionNumber === appId)) {
+        setCurrentStatus(acc.application.status || 'pending');
+        setApplicantData({
+          fullName: acc.user?.fullName || `${acc.user?.firstName || ''} ${acc.user?.familyName || ''}`.trim(),
+          idNumber: acc.user?.idNumber || '—',
+          phone: acc.user?.phone || '—',
+          email: acc.user?.email || '—',
+          city: acc.user?.city || 'الرياض',
+          address: acc.user?.address || 'العنوان المسجل',
+          vehicleMake: acc.application.vehicleMake || 'Toyota',
+          vehicleModel: acc.application.vehicleModel || 'Camry',
+          vehicleYear: acc.application.vehicleYear || '2024',
+          vehicleColor: acc.application.vehicleColor || 'فضي',
+          plateNumber: acc.application.plateNumber || 'أ ب ج 1234',
+          vehicleLicenseNumber: acc.application.vehicleLicenseNumber || '2049182390',
+          submissionDate: acc.application.submissionDate || 'اليوم',
+          documents: acc.application.documents || null,
+        });
+        return true;
+      }
+    }
+    return false;
+  };
+
   useEffect(() => {
+    // Load from localStorage first (instant)
     try {
       const dbStr = typeof window !== 'undefined' ? localStorage.getItem('mawqif_accounts_db') : null;
       if (dbStr) {
-        const db = JSON.parse(dbStr);
-        for (const userId in db) {
-          const acc = db[userId];
-          if (acc?.application && (acc.application.id === appId || acc.application.subscriptionNumber === appId)) {
-            setCurrentStatus(acc.application.status || 'pending');
-            setApplicantData({
-              fullName: acc.user.fullName || `${acc.user.firstName} ${acc.user.familyName}`,
-              idNumber: acc.user.idNumber,
-              phone: acc.user.phone,
-              email: acc.user.email,
-              city: acc.user.city || 'الرياض',
-              address: acc.user.address || 'العنوان المسجل',
-              vehicleMake: acc.application.vehicleMake || 'Toyota',
-              vehicleModel: acc.application.vehicleModel || 'Camry',
-              vehicleYear: acc.application.vehicleYear || '2024',
-              vehicleColor: acc.application.vehicleColor || 'فضي',
-              plateNumber: acc.application.plateNumber || 'أ ب ج 1234',
-              vehicleLicenseNumber: acc.application.vehicleLicenseNumber || '2049182390',
-              submissionDate: acc.application.submissionDate || 'اليوم',
-              documents: acc.application.documents || null,
-            });
-            break;
-          }
-        }
+        loadAppData(JSON.parse(dbStr));
       }
     } catch (e) {
       console.error(e);
     }
+
+    // Then fetch from server for cross-device data
+    fetch('/api/mawqif/db', { cache: 'no-store' })
+      .then(res => res.json())
+      .then(json => {
+        if (json.success && json.data) {
+          const serverDB = json.data;
+          // Merge with local
+          let localDB: Record<string, any> = {};
+          try {
+            const ls = typeof window !== 'undefined' ? localStorage.getItem('mawqif_accounts_db') : null;
+            if (ls) localDB = JSON.parse(ls);
+          } catch {}
+          const merged = { ...serverDB, ...localDB };
+          localStorage.setItem('mawqif_accounts_db', JSON.stringify(merged));
+          loadAppData(merged);
+        }
+      })
+      .catch(() => {});
   }, [appId]);
 
   const showToast = (msg: string) => {
@@ -118,6 +142,13 @@ export default function AdminReviewApplicationPage() {
       if (dbStr) {
         const db = JSON.parse(dbStr);
         let found = false;
+        const notification = {
+          id: Date.now(),
+          title: notificationTitle,
+          desc: notificationDesc,
+          time: 'الآن',
+          read: false,
+        };
 
         for (const userId in db) {
           const acc = db[userId];
@@ -126,22 +157,27 @@ export default function AdminReviewApplicationPage() {
             if (extraFields) {
               Object.assign(acc.application, extraFields);
             }
-
-            const newNotif = {
-              id: Date.now(),
-              title: notificationTitle,
-              desc: notificationDesc,
-              time: 'الآن',
-              read: false,
-            };
-            acc.notifications = [newNotif, ...(acc.notifications || [])];
+            acc.notifications = [notification, ...(acc.notifications || [])];
             found = true;
             break;
           }
         }
 
         if (found) {
+          // Save to localStorage
           localStorage.setItem('mawqif_accounts_db', JSON.stringify(db));
+          // Sync status update to server API (cross-device)
+          fetch('/api/mawqif/db', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'update_status',
+              appId,
+              newStatus,
+              extraFields,
+              notification,
+            }),
+          }).catch(err => console.error('Failed to sync status to server:', err));
         }
       }
     } catch (e) {
