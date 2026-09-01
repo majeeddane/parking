@@ -1,41 +1,16 @@
-
-export interface Job {
-    id: string;
-    user_id: string;
+export interface MawqifNotification {
+    id: number;
     title: string;
-    company_name: string;
-    location: string;
-    type: string;
-    salary_range?: string;
-    description: string;
-    created_at: string;
-    category_id?: string;
-    phone?: string;
-    email?: string;
-    job_type?: string;
-    experience_level?: string;
-    seo_url?: string;
-    is_active: boolean;
+    desc: string;
+    time: string;
+    read: boolean;
 }
 
-export interface Category {
-    id: string;
-    name_ar: string;
-    name_en: string;
-    icon?: string;
-}
-
-export interface Profile {
-    id: string;
-    user_id: string;
-    full_name: string;
-    title?: string;
-    bio?: string;
-    category_id?: string;
-    skills?: string[];
-    cv_url?: string;
-    phone?: string;
-    email?: string;
-    city?: string;
-    created_at: string;
+export interface ContactMessage {
+    id?: string;
+    name: string;
+    email: string;
+    subject?: string;
+    message: string;
+    created_at?: string;
 }

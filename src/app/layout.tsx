@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
-import Navbar from "@/components/Navbar";
-import { AuthProvider } from "@/providers/AuthProvider";
+import "@/app/mawqif/mawqif.css";
+import { MawqifProvider } from "@/components/mawqif/MawqifContext";
 
 const thmanyah = localFont({
   src: [
@@ -52,12 +52,9 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl" className={thmanyah.variable}>
       <body className={`${thmanyah.className} antialiased bg-[#F7F9FC]`}>
-        <AuthProvider>
-          <Navbar />
-          <main className="min-h-screen">
-            {children}
-          </main>
-        </AuthProvider>
+        <MawqifProvider>
+          {children}
+        </MawqifProvider>
       </body>
     </html>
   );

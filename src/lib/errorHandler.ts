@@ -91,8 +91,8 @@ export function getArabicErrorMessage(error: any): string {
         return `خطأ: ${error.message}`;
     }
 
-    if (rawMessage && rawMessage.length > 3 && rawMessage.length < 250 && !rawMessage.includes('{}')) {
-        return `خطأ أثناء تنفيذ الطلب: ${rawMessage}`;
+    if (message && message.length > 3 && message.length < 250 && !message.includes('{}')) {
+        return `خطأ أثناء تنفيذ الطلب: ${message}`;
     }
 
     // إذا لم يتطابق أي نمط سابق، إرجاع رسالة عربية واضحة
