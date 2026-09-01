@@ -13,8 +13,8 @@ function LoginContent() {
   const redirectTarget = searchParams.get('redirect') || '/mawqif/dashboard';
 
   const { login } = useMawqif();
-  const [identifier, setIdentifier] = useState('0501234567');
-  const [password, setPassword] = useState('123456');
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -22,7 +22,7 @@ function LoginContent() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!identifier.trim()) {
-      setError('يرجى إدخال رقم الجوال أو البريد الإلكتروني');
+      setError('يرجى إدخال رقم الجوال أو البريد الإلكتروني أو رقم الهوية');
       return;
     }
     if (!password.trim()) {
@@ -30,32 +30,31 @@ function LoginContent() {
       return;
     }
     setIsLoading(true);
+    setError('');
     setTimeout(() => {
       const result = login(identifier, password);
       setIsLoading(false);
       if (!result.success) {
-        setError(result.error || 'خطأ في تسجيل الدخول');
+        setError(result.error || 'خطأ في تسجيل الدخول. تأكد من صحة البيانات.');
       } else {
         router.push(redirectTarget);
       }
-    }, 500);
-  };
-
-  const handleAdminDemoLogin = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      router.push('/mawqif/admin');
-    }, 300);
+    }, 400);
   };
 
   return (
-    <div className="min-h-[80vh] py-12 md:py-16 bg-[#F7F9FC] flex items-center justify-center">
+    <div className="min-h-[80vh] py-12 md:py-16 bg-[#F7F9FC] flex items-center justify-center font-sans">
       <div className="mw-container w-full max-w-md">
         
         {redirectTarget.includes('apply') && (
           <div className="mb-4 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold leading-relaxed mw-animate-fadeIn">
             ⚠️ يلزم تسجيل الدخول أو إنشاء حساب أولاً للتقديم على برنامج الاشتراك المجاني في المواقف.
+          </div>
+        )}
+
+        {redirectTarget.includes('dashboard') && (
+          <div className="mb-4 p-4 rounded-2xl bg-blue-50 border border-blue-200 text-[#123B5D] text-xs font-semibold leading-relaxed mw-animate-fadeIn">
+            🔒 يرجى تسجيل الدخول بحسابك للوصول إلى لوحة التحكم وإدارة اشتراكاتك.
           </div>
         )}
 
@@ -76,13 +75,13 @@ function LoginContent() {
           <form onSubmit={handleSubmit} className="space-y-4">
             
             {error && (
-              <div className="p-3 rounded-xl bg-red-50 text-red-700 text-xs font-bold border border-red-200 mw-animate-fadeIn">
+              <div className="p-3.5 rounded-xl bg-red-50 text-red-700 text-xs font-bold border border-red-200 mw-animate-fadeIn">
                 {error}
               </div>
             )}
 
             <div className="mw-form-group">
-              <label className="mw-label">رقم الجوال أو البريد الإلكتروني</label>
+              <label className="mw-label">رقم الجوال أو البريد الإلكتروني أو رقم الهوية</label>
               <div className="relative">
                 <input
                   type="text"
@@ -91,6 +90,7 @@ function LoginContent() {
                   placeholder="05XXXXXXXX أو name@example.com"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
+                  autoComplete="username"
                 />
               </div>
             </div>
@@ -98,7 +98,7 @@ function LoginContent() {
             <div className="mw-form-group">
               <div className="flex items-center justify-between">
                 <label className="mw-label">كلمة المرور</label>
-                <a href="#forgot" onClick={(e) => { e.preventDefault(); alert('تم إرسال رمز إعادة التعيين إلى جوالك'); }} className="text-xs text-[#1677A8] hover:underline">
+                <a href="#forgot" onClick={(e) => { e.preventDefault(); alert('تم إرسال تعليمات استعادة كلمة المرور إلى هاتفك المسجل.'); }} className="text-xs text-[#1677A8] hover:underline font-semibold">
                   نسيت كلمة المرور؟
                 </a>
               </div>
@@ -110,6 +110,7 @@ function LoginContent() {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
                 />
                 <button
                   type="button"
@@ -145,18 +146,6 @@ function LoginContent() {
               <UserPlus size={14} />
               إنشاء حساب مستفيد جديد
             </Link>
-          </div>
-
-          {/* Admin Demo entry */}
-          <div className="pt-2 border-t border-slate-100">
-            <button
-              type="button"
-              onClick={handleAdminDemoLogin}
-              className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 text-xs font-semibold transition-colors"
-            >
-              <ShieldCheck size={15} className="text-[#123B5D]" />
-              الدخول التجريبي للوحة الإدارة (Admin)
-            </button>
           </div>
 
         </div>

@@ -41,9 +41,10 @@ const MOCK_VALID_RECORDS: VerifiedRecord[] = [
 
 function VerifyContent() {
   const searchParams = useSearchParams();
-  const [query, setQuery] = useState(searchParams.get('id') || 'PARK-2026-10482');
-  const [result, setResult] = useState<VerifiedRecord | null>(MOCK_VALID_RECORDS[0]);
-  const [hasSearched, setHasSearched] = useState(true);
+  const initialId = searchParams.get('id') || '';
+  const [query, setQuery] = useState(initialId);
+  const [result, setResult] = useState<VerifiedRecord | null>(null);
+  const [hasSearched, setHasSearched] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -55,6 +56,7 @@ function VerifyContent() {
   }, [searchParams]);
 
   const performVerify = (searchKey: string) => {
+    if (!searchKey.trim()) return;
     setIsLoading(true);
     setTimeout(() => {
       const clean = searchKey.trim().toUpperCase();
@@ -74,7 +76,7 @@ function VerifyContent() {
   };
 
   return (
-    <div className="min-h-[75vh] py-10 md:py-16 bg-[#F7F9FC]">
+    <div className="min-h-[75vh] py-10 md:py-16 bg-[#F7F9FC] font-sans">
       <div className="mw-container">
         
         {/* Header */}
@@ -84,7 +86,7 @@ function VerifyContent() {
             خدمة التحقق العامة
           </div>
           <h1 className="text-2xl md:text-3xl font-extrabold text-[#123B5D]">
-            تحقق من صلاحية الاشتراك
+            التحقق من صلاحية الاشتراك
           </h1>
           <p className="text-sm text-slate-500">
             أدخل رقم الاشتراك الرقمي أو رقم لوحة المركبة للتحقق المباشر من سريان وصحة بطاقة مواقف.
@@ -98,7 +100,7 @@ function VerifyContent() {
               <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <input
                 type="text"
-                placeholder="رقم الاشتراك (PARK-2026-10482) أو رقم اللوحة..."
+                placeholder="أدخل رقم الاشتراك أو رقم اللوحة للتحقق..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 className="w-full pr-10 pl-4 py-3 bg-transparent text-sm md:text-base outline-none text-[#172B3A] placeholder:text-slate-400 font-medium"
@@ -115,14 +117,16 @@ function VerifyContent() {
 
           {/* Demo examples tabs */}
           <div className="flex items-center justify-center gap-2 mt-3 text-xs">
-            <span className="text-slate-400">أمثلة:</span>
+            <span className="text-slate-400">أمثلة للتجربة:</span>
             <button
+              type="button"
               onClick={() => { setQuery('PARK-2026-10482'); performVerify('PARK-2026-10482'); }}
               className="text-[#1677A8] hover:underline font-mono bg-blue-50 px-2 py-0.5 rounded"
             >
               PARK-2026-10482
             </button>
             <button
+              type="button"
               onClick={() => { setQuery('أ ب ج 1234'); performVerify('أ ب ج 1234'); }}
               className="text-[#1677A8] hover:underline bg-blue-50 px-2 py-0.5 rounded"
             >
@@ -182,7 +186,7 @@ function VerifyContent() {
             </div>
 
           </div>
-        ) : hasSearched && (
+        ) : hasSearched ? (
           <div className="max-w-md mx-auto bg-white rounded-3xl p-8 border border-slate-200 text-center space-y-4 shadow-sm">
             <div className="w-14 h-14 rounded-full bg-red-50 text-red-500 flex items-center justify-center mx-auto">
               <XCircle size={28} />
@@ -192,7 +196,7 @@ function VerifyContent() {
               لم نتمكن من العثور على اشتراك مطابق لرقم الاستعلام المدخل. يرجى التأكد من الرقم والمحاولة مرة أخرى.
             </p>
           </div>
-        )}
+        ) : null}
 
       </div>
     </div>

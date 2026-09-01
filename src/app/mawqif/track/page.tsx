@@ -114,9 +114,10 @@ const MOCK_APPLICATIONS: ApplicationRecord[] = [
 
 function TrackContent() {
   const searchParams = useSearchParams();
-  const [query, setQuery] = useState(searchParams.get('id') || 'PARK-2026-10482');
-  const [activeRecord, setActiveRecord] = useState<ApplicationRecord | null>(MOCK_APPLICATIONS[0]);
-  const [hasSearched, setHasSearched] = useState(true);
+  const initialId = searchParams.get('id') || '';
+  const [query, setQuery] = useState(initialId);
+  const [activeRecord, setActiveRecord] = useState<ApplicationRecord | null>(null);
+  const [hasSearched, setHasSearched] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -128,6 +129,7 @@ function TrackContent() {
   }, [searchParams]);
 
   const handleSearchWithParam = (searchTerm: string) => {
+    if (!searchTerm.trim()) return;
     setIsLoading(true);
     setTimeout(() => {
       const clean = searchTerm.trim().toUpperCase();
@@ -147,13 +149,13 @@ function TrackContent() {
   };
 
   return (
-    <div className="min-h-[75vh] py-8 md:py-12 bg-[#F7F9FC]">
+    <div className="min-h-[75vh] py-8 md:py-12 bg-[#F7F9FC] font-sans">
       <div className="mw-container">
         
         {/* Header Title */}
         <div className="text-center max-w-xl mx-auto mb-8 space-y-2">
           <h1 className="text-2xl md:text-3xl font-extrabold text-[#123B5D]">
-            متابعة طلب الاشتراك
+            متابعة حالة الطلب
           </h1>
           <p className="text-sm text-slate-500">
             أدخل رقم الطلب المرجعي أو رقم الهوية الوطنية لمتابعة مراحل مراجعة طلبك بشكل فوري.
@@ -178,13 +180,13 @@ function TrackContent() {
               disabled={isLoading}
               className="mw-btn mw-btn-primary px-8 py-3 rounded-xl font-bold"
             >
-              {isLoading ? <span className="mw-spinner" /> : 'بحث واستعلام'}
+              {isLoading ? <span className="mw-spinner" /> : 'استعلام'}
             </button>
           </form>
 
           {/* Quick Demo Switcher Tabs */}
           <div className="flex flex-wrap items-center justify-center gap-2 mt-4 text-xs">
-            <span className="text-slate-400 font-medium">نماذج تجريبية سريعة:</span>
+            <span className="text-slate-400 font-medium">أمثلة للاستعلام:</span>
             {MOCK_APPLICATIONS.map((app) => (
               <button
                 key={app.id}
@@ -373,7 +375,7 @@ function TrackContent() {
             </div>
 
           </div>
-        ) : (
+        ) : hasSearched ? (
           <div className="max-w-md mx-auto bg-white rounded-3xl p-8 border border-slate-200 text-center space-y-4">
             <div className="w-14 h-14 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
               <AlertCircle size={28} />
@@ -383,7 +385,7 @@ function TrackContent() {
               تأكد من كتابة رقم الطلب بصيغة صحيحة مثل <code className="bg-slate-100 px-1 py-0.5 rounded text-slate-700">PARK-2026-10482</code> أو رقم الهوية الوطنية.
             </p>
           </div>
-        )}
+        ) : null}
 
       </div>
     </div>
