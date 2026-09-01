@@ -74,18 +74,26 @@ export default function RegisterPage() {
 
     setIsLoading(true);
     setTimeout(() => {
-      register({
-        firstName: form.firstName,
-        fatherName: form.fatherName,
-        familyName: form.familyName,
-        idNumber: form.idNumber,
-        phone: form.phone,
-        email: form.email,
-        city: form.city,
-      });
+      const res = register(
+        {
+          firstName: form.firstName.trim(),
+          fatherName: form.fatherName.trim(),
+          familyName: form.familyName.trim(),
+          idNumber: form.idNumber.trim(),
+          phone: form.phone.trim(),
+          email: form.email.trim(),
+          city: form.city,
+          password: form.password,
+        },
+        form.password
+      );
       setIsLoading(false);
-      // Redirect to apply directly
-      router.push('/mawqif/apply');
+      if (!res.success) {
+        setErrors({ email: res.error || 'حدث خطأ أثناء إنشاء الحساب' });
+      } else {
+        // Redirect to apply directly
+        router.push('/mawqif/apply');
+      }
     }, 600);
   };
 

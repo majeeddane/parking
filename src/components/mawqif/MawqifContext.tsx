@@ -107,7 +107,10 @@ export function MawqifProvider({ children }: { children: React.ReactNode }) {
   };
 
   const login = (identifier: string, password?: string): { success: boolean; error?: string } => {
-    const cleanId = identifier.trim();
+    const cleanId = identifier.trim().toLowerCase();
+    const cleanPhone = cleanId.replace(/\s+/g, '').replace(/^(\+966|00966)/, '0');
+    const cleanPass = (password || '').trim();
+
     if (!cleanId) {
       return { success: false, error: 'يرجى إدخال رقم الجوال أو البريد الإلكتروني أو رقم الهوية.' };
     }
@@ -116,12 +119,17 @@ export function MawqifProvider({ children }: { children: React.ReactNode }) {
     const accountList = Object.values(db);
 
     // Find account by phone, email, or idNumber
-    const foundAcc = accountList.find(
-      (acc) =>
-        acc.user.phone === cleanId ||
-        acc.user.email.toLowerCase() === cleanId.toLowerCase() ||
-        acc.user.idNumber === cleanId
-    );
+    const foundAcc = accountList.find((acc) => {
+      const uPhone = (acc.user.phone || '').trim().replace(/\s+/g, '').replace(/^(\+966|00966)/, '0');
+      const uEmail = (acc.user.email || '').trim().toLowerCase();
+      const uIdNum = (acc.user.idNumber || '').trim();
+
+      return (
+        (uEmail && uEmail === cleanId) ||
+        (uPhone && (uPhone === cleanId || uPhone === cleanPhone)) ||
+        (uIdNum && uIdNum === cleanId)
+      );
+    });
 
     if (!foundAcc) {
       return {
@@ -131,7 +139,8 @@ export function MawqifProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Verify password if provided
-    if (password && foundAcc.user.password && foundAcc.user.password !== password) {
+    const userStoredPassword = (foundAcc.user.password || '').trim();
+    if (cleanPass && userStoredPassword && userStoredPassword !== cleanPass) {
       return {
         success: false,
         error: 'كلمة المرور غير صحيحة. يرجى التأكد وإعادة المحاولة.',
@@ -152,13 +161,22 @@ export function MawqifProvider({ children }: { children: React.ReactNode }) {
     const db = getAccountsDB();
     const accountList = Object.values(db);
 
-    // Check if ID or phone already registered
-    const existing = accountList.find(
-      (acc) =>
-        (data.idNumber && acc.user.idNumber === data.idNumber) ||
-        (data.phone && acc.user.phone === data.phone) ||
-        (data.email && acc.user.email.toLowerCase() === data.email.toLowerCase())
-    );
+    const cleanEmail = (data.email || '').trim().toLowerCase();
+    const cleanPhone = (data.phone || '').trim().replace(/\s+/g, '');
+    const cleanIdNumber = (data.idNumber || '').trim();
+
+    // Check if ID or phone or email already registered
+    const existing = accountList.find((acc) => {
+      const uPhone = (acc.user.phone || '').trim().replace(/\s+/g, '');
+      const uEmail = (acc.user.email || '').trim().toLowerCase();
+      const uIdNum = (acc.user.idNumber || '').trim();
+
+      return (
+        (cleanIdNumber && uIdNum === cleanIdNumber) ||
+        (cleanPhone && uPhone === cleanPhone) ||
+        (cleanEmail && uEmail === cleanEmail)
+      );
+    });
 
     if (existing) {
       return {
@@ -169,20 +187,21 @@ export function MawqifProvider({ children }: { children: React.ReactNode }) {
 
     const userId = `usr_${Date.now()}`;
     const fullName = `${data.firstName || ''} ${data.fatherName || ''} ${data.familyName || ''}`.trim() || data.fullName || 'مستخدم جديد';
+    const userPassword = (password || data.password || '123456').trim();
 
     const newUser: MawqifUser = {
       id: userId,
-      firstName: data.firstName || '',
-      fatherName: data.fatherName || '',
-      familyName: data.familyName || '',
+      firstName: (data.firstName || '').trim(),
+      fatherName: (data.fatherName || '').trim(),
+      familyName: (data.familyName || '').trim(),
       fullName,
-      idNumber: data.idNumber || '',
-      phone: data.phone || '',
-      email: data.email || '',
+      idNumber: cleanIdNumber,
+      phone: cleanPhone,
+      email: cleanEmail,
       city: data.city || 'الرياض',
       address: data.address || '',
       dateOfBirth: data.dateOfBirth || '',
-      password: password || '123456',
+      password: userPassword,
     };
 
     const initialNotifs: NotificationItem[] = [
