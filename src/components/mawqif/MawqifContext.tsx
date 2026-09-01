@@ -16,6 +16,13 @@ export interface MawqifUser {
   password?: string;
 }
 
+export interface DocumentItem {
+  name: string;
+  type: string;
+  size: number;
+  dataUrl: string;
+}
+
 export interface UserApplication {
   id: string;
   submissionDate: string;
@@ -32,6 +39,12 @@ export interface UserApplication {
   subscriptionNumber?: string;
   subscriptionStartDate?: string;
   subscriptionEndDate?: string;
+  documents?: {
+    idDocument?: DocumentItem | null;
+    drivingLicense?: DocumentItem | null;
+    vehicleLicense?: DocumentItem | null;
+    carPhoto?: DocumentItem | null;
+  };
 }
 
 export interface NotificationItem {
@@ -257,6 +270,12 @@ export function MawqifProvider({ children }: { children: React.ReactNode }) {
       vehicleLicenseNumber: formData.vehicleLicenseNumber,
       isOwner: formData.isOwner,
       ownerRelation: formData.ownerRelation,
+      documents: {
+        idDocument: formData.idDocumentData || (formData.idDocument ? { name: formData.idDocument.name, type: formData.idDocument.type, size: formData.idDocument.size, dataUrl: '' } : null),
+        drivingLicense: formData.drivingLicenseData || (formData.drivingLicense ? { name: formData.drivingLicense.name, type: formData.drivingLicense.type, size: formData.drivingLicense.size, dataUrl: '' } : null),
+        vehicleLicense: formData.vehicleLicenseData || (formData.vehicleLicense ? { name: formData.vehicleLicense.name, type: formData.vehicleLicense.type, size: formData.vehicleLicense.size, dataUrl: '' } : null),
+        carPhoto: formData.carPhotoData || (formData.carPhoto ? { name: formData.carPhoto.name, type: formData.carPhoto.type, size: formData.carPhoto.size, dataUrl: '' } : null),
+      },
     };
 
     const newNotif: NotificationItem = {

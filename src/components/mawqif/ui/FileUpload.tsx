@@ -2,20 +2,27 @@
 import { useState, useCallback } from 'react';
 import { Upload, X, FileText, Image as ImageIcon, CheckCircle, AlertCircle } from 'lucide-react';
 
+export interface FileDataPayload {
+  name: string;
+  type: string;
+  size: number;
+  dataUrl: string;
+}
+
 interface FileUploadProps {
   label: string;
   required?: boolean;
   accept?: string;
   maxSizeMB?: number;
-  onFileChange?: (file: File | null) => void;
+  onFileChange?: (file: File | null, fileData?: FileDataPayload | null) => void;
   hint?: string;
 }
 
 export default function FileUpload({
   label,
   required = false,
-  accept = 'image/jpeg,image/png,application/pdf',
-  maxSizeMB = 5,
+  accept = 'image/jpeg,image/png,image/webp,application/pdf',
+  maxSizeMB = 10,
   onFileChange,
   hint,
 }: FileUploadProps) {
@@ -36,9 +43,9 @@ export default function FileUpload({
           setIsUploading(false);
           return 100;
         }
-        return prev + Math.random() * 25;
+        return prev + 35;
       });
-    }, 150);
+    }, 100);
   };
 
   const handleFile = useCallback((f: File) => {
@@ -48,14 +55,24 @@ export default function FileUpload({
       return;
     }
     setFile(f);
-    onFileChange?.(f);
-    if (f.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = e => setPreview(e.target?.result as string);
-      reader.readAsDataURL(f);
-    } else {
-      setPreview(null);
-    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = (e.target?.result as string) || '';
+      if (f.type.startsWith('image/')) {
+        setPreview(dataUrl);
+      } else {
+        setPreview(null);
+      }
+      onFileChange?.(f, {
+        name: f.name,
+        type: f.type,
+        size: f.size,
+        dataUrl: dataUrl,
+      });
+    };
+    reader.readAsDataURL(f);
+
     simulateUpload(f);
   }, [maxSizeMB, onFileChange]);
 
@@ -76,7 +93,7 @@ export default function FileUpload({
     setPreview(null);
     setUploadProgress(0);
     setError(null);
-    onFileChange?.(null);
+    onFileChange?.(null, null);
   };
 
   const formatSize = (bytes: number) => {
@@ -168,7 +185,7 @@ export default function FileUpload({
                 </button>
               </div>
               <div style={{ fontSize: '0.8rem', color: 'var(--mw-muted)', marginBottom: '0.5rem' }}>
-                {file.type.split('/')[1]?.toUpperCase()} · {formatSize(file.size)}
+                {file.type.split('/')[1]?.toUpperCase() || 'FILE'} · {formatSize(file.size)}
               </div>
 
               {/* Progress Bar */}
@@ -185,7 +202,7 @@ export default function FileUpload({
               {uploadProgress >= 100 && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.35rem', color: 'var(--mw-success)', fontSize: '0.8rem', fontWeight: 600 }}>
                   <CheckCircle size={13} />
-                  تم الرفع بنجاح
+                  تم الرفع وتجهيز المستند بنجاح
                 </div>
               )}
             </div>

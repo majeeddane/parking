@@ -41,9 +41,13 @@ export type FormData = {
   ownerRelation: string;
   // Documents
   idDocument: File | null;
+  idDocumentData?: { name: string; type: string; size: number; dataUrl: string } | null;
   drivingLicense: File | null;
+  drivingLicenseData?: { name: string; type: string; size: number; dataUrl: string } | null;
   vehicleLicense: File | null;
+  vehicleLicenseData?: { name: string; type: string; size: number; dataUrl: string } | null;
   carPhoto: File | null;
+  carPhotoData?: { name: string; type: string; size: number; dataUrl: string } | null;
 };
 
 export default function ApplyPage() {
@@ -72,9 +76,13 @@ export default function ApplyPage() {
     isOwner: 'yes',
     ownerRelation: '',
     idDocument: null,
+    idDocumentData: null,
     drivingLicense: null,
+    drivingLicenseData: null,
     vehicleLicense: null,
+    vehicleLicenseData: null,
     carPhoto: null,
+    carPhotoData: null,
   });
 
   // Auto prefill from logged-in user profile
