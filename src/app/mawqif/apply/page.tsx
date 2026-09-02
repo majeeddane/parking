@@ -162,36 +162,22 @@ export default function ApplyPage() {
       <MawqifNavbar />
 
       {/* Page Header */}
-      <div style={{
-        background: 'linear-gradient(135deg, var(--mw-primary) 0%, #1a5276 100%)',
-        padding: '3rem 0 2rem',
-        color: 'white',
-      }}>
+      <div className="bg-gradient-to-r from-[#123B5D] via-[#165a88] to-[#1a5276] py-6 sm:py-10 text-white">
         <div className="mw-container">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-            <div style={{ opacity: 0.7, fontSize: '0.85rem' }}>
-              <Link href="/mawqif" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none' }}>الرئيسية</Link>
-              <span style={{ margin: '0 0.5rem', opacity: 0.5 }}>›</span>
-              <span>{canEditAndResubmit ? 'تعديل وإعادة إرسال الطلب' : 'تقديم طلب اشتراك جديد'}</span>
-            </div>
+          <div className="flex items-center gap-2 mb-2 text-xs sm:text-sm text-white/70">
+            <Link href="/mawqif" className="text-white/80 hover:text-white transition-colors">الرئيسية</Link>
+            <span className="opacity-50">›</span>
+            <span>{canEditAndResubmit ? 'تعديل وإعادة إرسال الطلب' : 'تقديم طلب اشتراك جديد'}</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <div style={{
-              width: '3rem',
-              height: '3rem',
-              background: 'rgba(255,255,255,0.15)',
-              borderRadius: '12px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-              <Car size={22} color="white" />
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+              <Car size={20} className="text-white" />
             </div>
             <div>
-              <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'white', margin: 0 }}>
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-white">
                 {canEditAndResubmit ? 'تعديل وإعادة إرسال طلب الاشتراك' : 'طلب اشتراك مجاني في المواقف'}
               </h1>
-              <p style={{ color: 'rgba(255,255,255,0.7)', margin: '0.25rem 0 0', fontSize: '0.9rem' }}>
+              <p className="text-xs sm:text-sm text-white/80 mt-0.5">
                 برنامج الاشتراك السنوي المجاني لمدة 12 شهرًا للمستفيدين المؤهلين
               </p>
             </div>
@@ -200,22 +186,22 @@ export default function ApplyPage() {
       </div>
 
       {/* Main Content Area */}
-      <div style={{ background: 'var(--mw-bg)', minHeight: '70vh', padding: '2.5rem 0' }}>
+      <div className="bg-[#F7F9FC] min-h-[70vh] py-6 sm:py-10">
         <div className="mw-container">
-          <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+          <div className="max-w-3xl mx-auto">
             
             {/* 1. AUTHENTICATION GATE CHECK */}
             {!isLoggedIn ? (
-              <div className="bg-white rounded-3xl p-8 md:p-12 border border-slate-200 shadow-xl text-center space-y-6 mw-animate-scaleIn">
-                <div className="w-16 h-16 rounded-3xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto border-2 border-amber-100 shadow-inner">
-                  <Lock size={32} />
+              <div className="bg-white rounded-3xl p-6 sm:p-10 md:p-12 border border-slate-200 shadow-xl text-center space-y-5 mw-animate-scaleIn">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-3xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto border-2 border-amber-100 shadow-inner">
+                  <Lock size={28} />
                 </div>
 
                 <div className="space-y-2 max-w-md mx-auto">
-                  <h2 className="text-xl md:text-2xl font-extrabold text-[#123B5D]">
+                  <h2 className="text-xl sm:text-2xl font-extrabold text-[#123B5D]">
                     تسجيل الدخول مطلوب للتقديم
                   </h2>
-                  <p className="text-xs md:text-sm text-slate-500 leading-relaxed">
+                  <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
                     لحماية بياناتك وإتاحة متابعة حالة الطلب وإصدار بطاقة الاشتراك الرقمية، يلزم تسجيل الدخول بحسابك أو إنشاء حساب مستفيد جديد أولاً.
                   </p>
                 </div>
@@ -223,14 +209,14 @@ export default function ApplyPage() {
                 <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2 max-w-sm mx-auto">
                   <Link
                     href="/mawqif/register"
-                    className="mw-btn mw-btn-primary py-3 font-bold text-xs md:text-sm flex-1 text-center justify-center"
+                    className="mw-btn mw-btn-primary py-3 font-bold text-xs sm:text-sm flex-1 text-center justify-center"
                   >
                     <UserPlus size={16} />
                     إنشاء حساب جديد
                   </Link>
                   <Link
                     href="/mawqif/login?redirect=/mawqif/apply"
-                    className="mw-btn mw-btn-outline py-3 font-bold text-xs md:text-sm flex-1 text-center justify-center bg-white"
+                    className="mw-btn mw-btn-outline py-3 font-bold text-xs sm:text-sm flex-1 text-center justify-center bg-white"
                   >
                     <LogIn size={16} />
                     تسجيل الدخول
@@ -244,32 +230,32 @@ export default function ApplyPage() {
               </div>
             ) : isPending ? (
               /* 2. ALREADY HAS PENDING APPLICATION - PREVENT DUPLICATE SUBMISSION */
-              <div className="bg-white rounded-3xl p-8 md:p-12 border border-slate-200 shadow-xl text-center space-y-6 mw-animate-scaleIn">
-                <div className="w-16 h-16 rounded-3xl bg-blue-50 text-[#1677A8] flex items-center justify-center mx-auto border-2 border-blue-100 shadow-inner">
-                  <Clock size={32} />
+              <div className="bg-white rounded-3xl p-6 sm:p-10 md:p-12 border border-slate-200 shadow-xl text-center space-y-5 mw-animate-scaleIn">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-3xl bg-blue-50 text-[#1677A8] flex items-center justify-center mx-auto border-2 border-blue-100 shadow-inner">
+                  <Clock size={28} />
                 </div>
 
                 <div className="space-y-2 max-w-md mx-auto">
                   <div className="inline-flex items-center gap-1.5 bg-blue-50 text-[#1677A8] px-3.5 py-1 rounded-full text-xs font-bold mb-1">
                     <StatusBadge status="pending" size="sm" />
                   </div>
-                  <h2 className="text-xl md:text-2xl font-extrabold text-[#123B5D]">
+                  <h2 className="text-xl sm:text-2xl font-extrabold text-[#123B5D]">
                     لديك طلب اشتراك قيد المراجعة بالفعل
                   </h2>
-                  <p className="text-xs md:text-sm text-slate-500 leading-relaxed">
+                  <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
                     لقد قمت بتقديم طلب اشتراك مسبقًا برقم مرجعي <span className="font-mono font-bold text-[#123B5D]" dir="ltr">({userApplication.id})</span> وهو الآن قيد التدقيق والمراجعة من قبل الفريق المختص. لا يمكنك تقديم طلب جديد مكرر حتى صدور القرار النهائي.
                   </p>
                 </div>
 
                 {/* Application Snapshot Card */}
-                <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200/80 max-w-md mx-auto text-right text-xs space-y-2.5">
+                <div className="bg-slate-50 rounded-2xl p-4 sm:p-5 border border-slate-200/80 max-w-md mx-auto text-right text-xs space-y-2.5">
                   <div className="flex items-center justify-between pb-2 border-b border-slate-200/60">
                     <span className="text-slate-400">رقم الطلب</span>
                     <span className="font-bold text-[#123B5D] font-mono text-sm" dir="ltr">{userApplication.id}</span>
                   </div>
                   <div className="flex items-center justify-between pb-2 border-b border-slate-200/60">
                     <span className="text-slate-400">المركبة المسجلة</span>
-                    <span className="font-bold text-slate-800">{userApplication.vehicleMake} {userApplication.vehicleModel} ({userApplication.plateNumber})</span>
+                    <span className="font-bold text-slate-800 truncate max-w-[200px]">{userApplication.vehicleMake} {userApplication.vehicleModel} ({userApplication.plateNumber})</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-slate-400">تاريخ التقديم</span>
@@ -281,14 +267,14 @@ export default function ApplyPage() {
                 <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2 max-w-md mx-auto">
                   <Link
                     href={`/mawqif/track?id=${userApplication.id}`}
-                    className="mw-btn mw-btn-primary py-3 font-bold text-xs md:text-sm flex-1 text-center justify-center"
+                    className="mw-btn mw-btn-primary py-3 font-bold text-xs sm:text-sm flex-1 text-center justify-center"
                   >
                     <FileSearch size={16} />
                     متابعة وتتبع حالة الطلب
                   </Link>
                   <Link
                     href="/mawqif/dashboard"
-                    className="mw-btn mw-btn-outline py-3 font-bold text-xs md:text-sm flex-1 text-center justify-center bg-white"
+                    className="mw-btn mw-btn-outline py-3 font-bold text-xs sm:text-sm flex-1 text-center justify-center bg-white"
                   >
                     <LayoutDashboard size={16} />
                     لوحة تحكم المستفيد
@@ -297,16 +283,16 @@ export default function ApplyPage() {
               </div>
             ) : isApproved ? (
               /* 3. ALREADY HAS APPROVED SUBSCRIPTION */
-              <div className="bg-white rounded-3xl p-8 md:p-12 border border-slate-200 shadow-xl text-center space-y-6 mw-animate-scaleIn">
-                <div className="w-16 h-16 rounded-3xl bg-emerald-50 text-[#19A974] flex items-center justify-center mx-auto border-2 border-emerald-100 shadow-inner">
-                  <CheckCircle2 size={36} />
+              <div className="bg-white rounded-3xl p-6 sm:p-10 md:p-12 border border-slate-200 shadow-xl text-center space-y-5 mw-animate-scaleIn">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-3xl bg-emerald-50 text-[#19A974] flex items-center justify-center mx-auto border-2 border-emerald-100 shadow-inner">
+                  <CheckCircle2 size={32} />
                 </div>
 
                 <div className="space-y-2 max-w-md mx-auto">
-                  <h2 className="text-xl md:text-2xl font-extrabold text-[#123B5D]">
+                  <h2 className="text-xl sm:text-2xl font-extrabold text-[#123B5D]">
                     لديك اشتراك سنوي مفعّل ومعتمد بالفعل 🎉
                   </h2>
-                  <p className="text-xs md:text-sm text-slate-500 leading-relaxed">
+                  <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
                     تمت الموافقة على طلبك مسبقًا واشتراكك السنوي المجاني مفعّل وجاهز للاستخدام. يمكنك فتح بطاقتك الرقمية واستخدام الـ QR Code عند جميع بوابات المواقف.
                   </p>
                 </div>
@@ -314,14 +300,14 @@ export default function ApplyPage() {
                 <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2 max-w-md mx-auto">
                   <Link
                     href="/mawqif/dashboard/subscription"
-                    className="mw-btn mw-btn-accent text-white py-3 font-bold text-xs md:text-sm flex-1 text-center justify-center shadow-md"
+                    className="mw-btn mw-btn-accent text-white py-3 font-bold text-xs sm:text-sm flex-1 text-center justify-center shadow-md"
                   >
                     <QrCode size={16} />
                     استعراض بطاقتي الرقمية
                   </Link>
                   <Link
                     href="/mawqif/dashboard"
-                    className="mw-btn mw-btn-outline py-3 font-bold text-xs md:text-sm flex-1 text-center justify-center bg-white"
+                    className="mw-btn mw-btn-outline py-3 font-bold text-xs sm:text-sm flex-1 text-center justify-center bg-white"
                   >
                     <LayoutDashboard size={16} />
                     لوحة التحكم
@@ -332,25 +318,25 @@ export default function ApplyPage() {
               /* 4. FRESH SUBMISSION OR EDITING REJECTED / NEEDS_EDIT APPLICATION */
               <>
                 {/* User welcome info bar */}
-                <div className="mb-4 bg-blue-50/80 border border-blue-200/80 rounded-2xl p-3.5 px-5 flex items-center justify-between gap-3 text-xs">
+                <div className="mb-4 bg-blue-50/80 border border-blue-200/80 rounded-2xl p-3 sm:p-3.5 px-4 sm:px-5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                   <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-[#19A974]" />
+                    <span className="w-2 h-2 rounded-full bg-[#19A974] shrink-0" />
                     <span className="font-bold text-[#123B5D]">مقدم الطلب: {currentUser?.fullName}</span>
                     <span className="text-slate-400 font-mono">({currentUser?.idNumber})</span>
                   </div>
-                  <span className="text-[#1677A8] font-semibold hidden sm:inline-block">
+                  <span className="text-[#1677A8] font-semibold text-[11px] sm:text-xs">
                     {canEditAndResubmit ? 'تم استرجاع بياناتك السابقة للتعديل' : 'تم استيراد بياناتك تلقائيًا ✓'}
                   </span>
                 </div>
 
                 {/* Banner if application was rejected or needs edit */}
                 {isRejected && (
-                  <div className="mb-6 p-5 rounded-2xl bg-red-50 border-2 border-red-200 text-red-900 space-y-2.5 shadow-sm mw-animate-fadeIn">
-                    <div className="flex items-center gap-2 font-bold text-sm text-red-800">
-                      <AlertTriangle size={18} className="text-red-600 shrink-0" />
+                  <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-red-50 border-2 border-red-200 text-red-900 space-y-2 shadow-sm mw-animate-fadeIn">
+                    <div className="flex items-center gap-2 font-bold text-xs sm:text-sm text-red-800">
+                      <AlertTriangle size={17} className="text-red-600 shrink-0" />
                       <span>تنبيه: يمكنك الآن تعديل بياناتك ومستنداتك وإعادة إرسال الطلب</span>
                     </div>
-                    <p className="text-xs md:text-sm text-red-700 leading-relaxed pr-6">
+                    <p className="text-xs sm:text-sm text-red-700 leading-relaxed pr-6">
                       سبب رفض الطلب السابق: <span className="font-semibold">{userApplication?.rejectionReason || 'عدم وضوح المستندات المرفقة أو عدم مطابقة البيانات.'}</span>
                     </p>
                     <div className="text-[11px] text-red-600/90 pr-6">
@@ -360,12 +346,12 @@ export default function ApplyPage() {
                 )}
 
                 {isNeedsEdit && (
-                  <div className="mb-6 p-5 rounded-2xl bg-amber-50 border-2 border-amber-200 text-amber-900 space-y-2.5 shadow-sm mw-animate-fadeIn">
-                    <div className="flex items-center gap-2 font-bold text-sm text-amber-900">
-                      <AlertCircle size={18} className="text-amber-600 shrink-0" />
+                  <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-amber-50 border-2 border-amber-200 text-amber-900 space-y-2 shadow-sm mw-animate-fadeIn">
+                    <div className="flex items-center gap-2 font-bold text-xs sm:text-sm text-amber-900">
+                      <AlertCircle size={17} className="text-amber-600 shrink-0" />
                       <span>مطلوب تعديل وتحديث بيانات الطلب</span>
                     </div>
-                    <p className="text-xs md:text-sm text-amber-800 leading-relaxed pr-6">
+                    <p className="text-xs sm:text-sm text-amber-800 leading-relaxed pr-6">
                       ملاحظات فريق المراجعة: <span className="font-semibold">{userApplication?.rejectionReason || 'يرجى إعادة رفع المستندات المطلوبة.'}</span>
                     </p>
                     <div className="text-[11px] text-amber-700 pr-6">
@@ -375,59 +361,29 @@ export default function ApplyPage() {
                 )}
 
                 {/* Step Indicator */}
-                <div style={{
-                  background: 'var(--mw-white)',
-                  borderRadius: '20px',
-                  padding: '1.75rem 2rem',
-                  marginBottom: '1.5rem',
-                  border: '1px solid var(--mw-border)',
-                  boxShadow: 'var(--mw-shadow-sm)',
-                }}>
+                <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 mb-4 sm:mb-6 border border-slate-200 shadow-xs">
                   <StepIndicator steps={STEPS} currentStep={currentStep} />
                 </div>
 
                 {/* Form Card */}
-                <div style={{
-                  background: 'var(--mw-white)',
-                  borderRadius: '20px',
-                  border: '1px solid var(--mw-border)',
-                  boxShadow: 'var(--mw-shadow-sm)',
-                  overflow: 'hidden',
-                  animation: 'mw-fadeIn 0.3s ease',
-                }}>
+                <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm overflow-hidden mw-animate-fadeIn">
                   {/* Step Header */}
-                  <div style={{
-                    padding: '1.5rem 2rem',
-                    borderBottom: '1px solid var(--mw-border)',
-                    background: 'var(--mw-bg)',
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <span style={{
-                        background: 'var(--mw-secondary)',
-                        color: 'white',
-                        width: '1.75rem',
-                        height: '1.75rem',
-                        borderRadius: '50%',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '0.8rem',
-                        fontWeight: 700,
-                        flexShrink: 0,
-                      }}>
+                  <div className="p-4 sm:p-6 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-7 h-7 rounded-full bg-[#1677A8] text-white flex items-center justify-center text-xs font-bold shrink-0">
                         {currentStep}
                       </span>
-                      <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--mw-primary)', margin: 0 }}>
+                      <h2 className="text-sm sm:text-base font-bold text-[#123B5D]">
                         {STEPS[currentStep - 1].label}
                       </h2>
-                      <span style={{ color: 'var(--mw-muted)', fontSize: '0.85rem', marginRight: 'auto' }}>
-                        الخطوة {currentStep} من {STEPS.length}
-                      </span>
                     </div>
+                    <span className="text-slate-400 text-xs font-medium">
+                      الخطوة {currentStep} من {STEPS.length}
+                    </span>
                   </div>
 
                   {/* Step Content */}
-                  <div style={{ padding: '2rem' }}>
+                  <div className="p-4 sm:p-6 md:p-8">
                     {currentStep === 1 && (
                       <PersonalInfoStep
                         data={formData}

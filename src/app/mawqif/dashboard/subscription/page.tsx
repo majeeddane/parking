@@ -178,7 +178,7 @@ export default function SubscriptionCardPage() {
               {/* Main Digital Pass Card */}
               <div
                 id="printable-card"
-                className="relative overflow-hidden rounded-3xl p-6 md:p-8 text-white shadow-2xl transition-all hover:shadow-cyan-900/20 border border-white/20"
+                className="relative overflow-hidden rounded-3xl p-4 sm:p-6 md:p-8 text-white shadow-2xl transition-all hover:shadow-cyan-900/20 border border-white/20"
                 style={{
                   background: isApproved
                     ? 'linear-gradient(135deg, #123B5D 0%, #16537e 45%, #1677A8 85%, #19A974 100%)'

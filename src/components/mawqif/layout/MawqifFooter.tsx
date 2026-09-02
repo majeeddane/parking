@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { Car, Phone, Mail, Clock, MapPin, Shield, FileText } from 'lucide-react';
+import { Car, Mail, Clock, MapPin } from 'lucide-react';
 
 const footerLinks = {
   main: [
@@ -18,63 +18,53 @@ const footerLinks = {
 
 export default function MawqifFooter() {
   return (
-    <footer style={{
-      background: 'var(--mw-primary)',
-      color: 'white',
-      marginTop: '4rem',
-    }}>
+    <footer className="bg-[#123B5D] text-white mt-12 sm:mt-16">
       {/* Main Footer */}
-      <div className="mw-container" style={{ padding: '4rem 1.5rem 2.5rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '2.5rem' }}>
-          {/* Brand */}
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1rem' }}>
-              <div style={{
-                width: '2.5rem',
-                height: '2.5rem',
-                background: 'rgba(255,255,255,0.15)',
-                borderRadius: '10px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
+      <div className="mw-container py-10 sm:py-14">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-10">
+          
+          {/* Brand & Contacts */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
                 <Car size={20} color="white" />
               </div>
               <div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'white', lineHeight: 1.1 }}>مواقف</div>
-                <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)', fontWeight: 400 }}>Mawqif</div>
+                <div className="text-xl font-black text-white leading-tight">مواقف</div>
+                <div className="text-[11px] text-white/60 font-medium">Mawqif</div>
               </div>
             </div>
-            <p style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.7)', lineHeight: 1.75, maxWidth: '240px' }}>
+            <p className="text-xs sm:text-sm text-white/75 leading-relaxed">
               اشتراكك المجاني يبدأ من هنا. برنامج متكامل لتيسير الوصول إلى مواقف السيارات بشكل مجاني لمدة سنة كاملة.
             </p>
 
-            {/* Contact Icons */}
-            <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-              {[
-                { icon: <Mail size={14} />, text: 'info@mawqif.sa' },
-                { icon: <Clock size={14} />, text: 'الأحد – الخميس | 8ص – 5م' },
-                { icon: <MapPin size={14} />, text: 'الرياض، المملكة العربية السعودية' },
-              ].map((item, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'rgba(255,255,255,0.7)', fontSize: '0.85rem' }}>
-                  <span style={{ color: 'var(--mw-accent)' }}>{item.icon}</span>
-                  {item.text}
-                </div>
-              ))}
+            <div className="space-y-2 pt-2 text-xs text-white/80">
+              <div className="flex items-center gap-2.5">
+                <Mail size={14} className="text-[#19A974] shrink-0" />
+                <span>info@mawqif.sa</span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <Clock size={14} className="text-[#19A974] shrink-0" />
+                <span>الأحد – الخميس | 8:00 ص – 5:00 م</span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <MapPin size={14} className="text-[#19A974] shrink-0" />
+                <span>الرياض، المملكة العربية السعودية</span>
+              </div>
             </div>
           </div>
 
-          {/* Links */}
+          {/* Quick Links */}
           <div>
-            <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'rgba(255,255,255,0.9)', marginBottom: '1.25rem', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            <h4 className="text-xs sm:text-sm font-bold text-white/90 mb-4 uppercase tracking-wider">
               روابط سريعة
             </h4>
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-              {footerLinks.main.map(link => (
+            <ul className="space-y-2.5 text-xs sm:text-sm">
+              {footerLinks.main.map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} style={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.9rem', textDecoration: 'none', transition: 'color 0.2s' }}
-                    onMouseEnter={e => (e.target as HTMLElement).style.color = 'white'}
-                    onMouseLeave={e => (e.target as HTMLElement).style.color = 'rgba(255,255,255,0.65)'}
+                  <Link
+                    href={link.href}
+                    className="text-white/70 hover:text-white transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -83,23 +73,23 @@ export default function MawqifFooter() {
             </ul>
           </div>
 
-          {/* Quick Links */}
+          {/* Services */}
           <div>
-            <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'rgba(255,255,255,0.9)', marginBottom: '1.25rem', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-              الخدمات
+            <h4 className="text-xs sm:text-sm font-bold text-white/90 mb-4 uppercase tracking-wider">
+              الخدمات الرقمية
             </h4>
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+            <ul className="space-y-2.5 text-xs sm:text-sm">
               {[
-                { href: '/mawqif/apply', label: 'تقديم طلب' },
-                { href: '/mawqif/track', label: 'متابعة الطلب' },
+                { href: '/mawqif/apply', label: 'تقديم طلب اشتراك' },
+                { href: '/mawqif/track', label: 'متابعة وتتبع الطلب' },
                 { href: '/mawqif/verify', label: 'التحقق من الاشتراك' },
                 { href: '/mawqif/dashboard', label: 'لوحة التحكم' },
                 { href: '/mawqif/login', label: 'تسجيل الدخول' },
-              ].map(link => (
+              ].map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} style={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.9rem', textDecoration: 'none', transition: 'color 0.2s' }}
-                    onMouseEnter={e => (e.target as HTMLElement).style.color = 'white'}
-                    onMouseLeave={e => (e.target as HTMLElement).style.color = 'rgba(255,255,255,0.65)'}
+                  <Link
+                    href={link.href}
+                    className="text-white/70 hover:text-white transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -110,47 +100,38 @@ export default function MawqifFooter() {
 
           {/* CTA Box */}
           <div>
-            <div style={{
-              background: 'rgba(25,169,116,0.15)',
-              border: '1px solid rgba(25,169,116,0.3)',
-              borderRadius: '16px',
-              padding: '1.5rem',
-            }}>
-              <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'white', marginBottom: '0.5rem' }}>
+            <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-2xl p-5 space-y-3">
+              <div className="text-sm font-bold text-white">
                 جاهز للتقديم؟
               </div>
-              <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)', marginBottom: '1.25rem', lineHeight: 1.65 }}>
-                قدّم طلبك الآن واحصل على اشتراك مجاني لمدة 12 شهرًا.
+              <p className="text-xs text-white/75 leading-relaxed">
+                قدّم طلبك الآن إلكترونيًا واحصل على اشتراك مجاني لمدة 12 شهرًا.
               </p>
-              <Link href="/mawqif/apply" style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                background: 'var(--mw-accent)',
-                color: 'white',
-                padding: '0.65rem 1.25rem',
-                borderRadius: '10px',
-                fontSize: '0.9rem',
-                fontWeight: 600,
-                textDecoration: 'none',
-                transition: 'all 0.2s',
-              }}>
+              <Link
+                href="/mawqif/apply"
+                className="inline-flex items-center gap-1.5 bg-[#19A974] hover:bg-[#14896a] text-white text-xs font-bold py-2.5 px-4 rounded-xl transition-all shadow-md shadow-emerald-950/30"
+              >
                 قدّم الآن
               </Link>
             </div>
           </div>
+
         </div>
       </div>
 
       {/* Bottom Bar */}
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', padding: '1.25rem 0' }}>
-        <div className="mw-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
-          <div style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.5)' }}>
+      <div className="border-t border-white/10 py-4 text-xs text-white/60">
+        <div className="mw-container flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-right">
+          <div>
             © 2026 مواقف. جميع الحقوق محفوظة.
           </div>
-          <div style={{ display: 'flex', gap: '1.5rem' }}>
-            {footerLinks.legal.map(link => (
-              <Link key={link.href} href={link.href} style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.5)', textDecoration: 'none' }}>
+          <div className="flex items-center gap-4">
+            {footerLinks.legal.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="text-white/60 hover:text-white transition-colors"
+              >
                 {link.label}
               </Link>
             ))}
