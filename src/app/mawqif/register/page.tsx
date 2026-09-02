@@ -2,7 +2,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Car, Lock, Mail, Phone, User, MapPin, Eye, EyeOff, ShieldCheck, CheckCircle2, AlertCircle, ArrowLeft } from 'lucide-react';
+import Image from 'next/image';
+import { Lock, Mail, Phone, User, MapPin, Eye, EyeOff, ShieldCheck, CheckCircle2, AlertCircle, ArrowLeft } from 'lucide-react';
 import MawqifNavbar from '@/components/mawqif/layout/MawqifNavbar';
 import MawqifFooter from '@/components/mawqif/layout/MawqifFooter';
 import { useMawqif } from '@/components/mawqif/MawqifContext';
@@ -107,10 +108,17 @@ export default function RegisterPage() {
           <div className="bg-white rounded-3xl p-6 md:p-10 border border-slate-200/80 shadow-xl shadow-slate-200/40 space-y-6">
             
             {/* Header */}
-            <div className="text-center space-y-2">
-              <div className="w-14 h-14 bg-gradient-to-tr from-[#123B5D] to-[#19A974] text-white rounded-2xl flex items-center justify-center mx-auto shadow-md">
-                <User size={28} />
-              </div>
+            <div className="text-center space-y-3">
+              <Link href="/mawqif" className="inline-block transition-transform hover:scale-105">
+                <Image
+                  src="/mawqif/logo-app.png"
+                  alt="مواقف Mawaqif"
+                  width={64}
+                  height={64}
+                  className="mx-auto drop-shadow-md rounded-2xl"
+                  priority
+                />
+              </Link>
               <h1 className="text-2xl md:text-3xl font-extrabold text-[#123B5D]">
                 إنشاء حساب مستفيد جديد
               </h1>

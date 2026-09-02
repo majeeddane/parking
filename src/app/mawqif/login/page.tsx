@@ -2,7 +2,8 @@
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Car, Lock, Mail, Phone, Eye, EyeOff, ShieldCheck, UserPlus, LogIn } from 'lucide-react';
+import Image from 'next/image';
+import { Lock, Mail, Phone, Eye, EyeOff, ShieldCheck, UserPlus, LogIn } from 'lucide-react';
 import MawqifNavbar from '@/components/mawqif/layout/MawqifNavbar';
 import MawqifFooter from '@/components/mawqif/layout/MawqifFooter';
 import { useMawqif } from '@/components/mawqif/MawqifContext';
@@ -61,10 +62,17 @@ function LoginContent() {
         <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200/80 shadow-xl shadow-slate-200/40 space-y-6">
           
           {/* Header / Logo */}
-          <div className="text-center space-y-2">
-            <div className="w-14 h-14 bg-gradient-to-tr from-[#123B5D] to-[#1677A8] text-white rounded-2xl flex items-center justify-center mx-auto shadow-md shadow-[#123B5D]/20">
-              <Car size={28} />
-            </div>
+          <div className="text-center space-y-3">
+            <Link href="/mawqif" className="inline-block transition-transform hover:scale-105">
+              <Image
+                src="/mawqif/logo-app.png"
+                alt="مواقف Mawaqif"
+                width={64}
+                height={64}
+                className="mx-auto drop-shadow-md rounded-2xl"
+                priority
+              />
+            </Link>
             <h1 className="text-2xl font-extrabold text-[#123B5D]">تسجيل الدخول</h1>
             <p className="text-xs md:text-sm text-slate-500">
               أدخل بيانات حسابك لإدارة اشتراكاتك وتقديم الطلبات

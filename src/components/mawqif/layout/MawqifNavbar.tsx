@@ -1,7 +1,8 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Car, Menu, X, Bell, User, LogIn, FileText, UserPlus, LogOut, LayoutDashboard } from 'lucide-react';
+import Image from 'next/image';
+import { Menu, X, Bell, User, LogIn, FileText, UserPlus, LogOut, LayoutDashboard } from 'lucide-react';
 import { useMawqif } from '@/components/mawqif/MawqifContext';
 
 const navLinks = [
@@ -48,21 +49,18 @@ export default function MawqifNavbar() {
             height: '72px',
           }}>
             {/* Logo */}
-            <Link href="/mawqif" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-              <div style={{
-                width: '2.5rem',
-                height: '2.5rem',
-                background: 'linear-gradient(135deg, var(--mw-primary), var(--mw-secondary))',
-                borderRadius: '10px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-                <Car size={20} color="white" />
-              </div>
+            <Link href="/mawqif" className="flex items-center gap-2.5 shrink-0" style={{ textDecoration: 'none' }}>
+              <Image
+                src="/mawqif/logo-app.png"
+                alt="مواقف Mawaqif"
+                width={38}
+                height={38}
+                className="object-contain rounded-xl"
+                priority
+              />
               <div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--mw-primary)', lineHeight: 1.1 }}>مواقف</div>
-                <div style={{ fontSize: '0.65rem', color: 'var(--mw-muted)', fontWeight: 500, lineHeight: 1 }}>Mawqif</div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--mw-primary)', lineHeight: 1.1, letterSpacing: '-0.02em' }}>مواقف</div>
+                <div style={{ fontSize: '0.6rem', color: 'var(--mw-secondary)', fontWeight: 700, lineHeight: 1, letterSpacing: '0.08em', textTransform: 'uppercase' }}>MAWAQIF</div>
               </div>
             </Link>
 
@@ -178,12 +176,19 @@ export default function MawqifNavbar() {
         flexDirection: 'column',
         overflow: 'hidden',
       }}>
-        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--mw-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Link href="/mawqif" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.6rem' }} onClick={() => setMobileOpen(false)}>
-            <div style={{ width: '2rem', height: '2rem', background: 'linear-gradient(135deg, var(--mw-primary), var(--mw-secondary))', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Car size={16} color="white" />
+        <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--mw-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Link href="/mawqif" className="flex items-center gap-2.5" style={{ textDecoration: 'none' }} onClick={() => setMobileOpen(false)}>
+            <Image
+              src="/mawqif/logo-app.png"
+              alt="مواقف Mawaqif"
+              width={34}
+              height={34}
+              className="object-contain rounded-xl"
+            />
+            <div>
+              <div style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--mw-primary)', lineHeight: 1.15, letterSpacing: '-0.02em' }}>مواقف</div>
+              <div style={{ fontSize: '0.55rem', color: 'var(--mw-secondary)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>MAWAQIF</div>
             </div>
-            <span style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--mw-primary)' }}>مواقف</span>
           </Link>
           <button onClick={() => setMobileOpen(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--mw-muted)', padding: '0.25rem' }}>
             <X size={20} />

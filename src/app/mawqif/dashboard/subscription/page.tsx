@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   Download,
   Printer,
@@ -200,12 +201,16 @@ export default function SubscriptionCardPage() {
 
                 {/* Header row of Card */}
                 <div className="flex items-center justify-between border-b border-white/15 pb-4 mb-6 relative z-10">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-xl bg-white/15 backdrop-blur-md flex items-center justify-center border border-white/20">
-                      <Car size={22} className="text-white" />
-                    </div>
+                  <div className="flex items-center gap-3">
+                    <Image
+                      src="/mawqif/logo-icon-white.png"
+                      alt="مواقف"
+                      width={38}
+                      height={38}
+                      className="object-contain drop-shadow"
+                    />
                     <div>
-                      <h2 className="font-extrabold text-lg md:text-xl tracking-tight">مواقف | Mawqif</h2>
+                      <h2 className="font-extrabold text-lg md:text-xl tracking-tight">مواقف | MAWAQIF</h2>
                       <span className="text-[11px] text-white/75 block -mt-1 font-medium">
                         {isApproved ? 'بطاقة اشتراك مواقف إلكترونية رسمية' : 'نموذج بطاقة اشتراك إلكترونية'}
                       </span>

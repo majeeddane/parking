@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
@@ -80,9 +81,13 @@ export default function MawqifSidebar({ mobileOpen, onCloseMobile }: Props) {
         {/* Brand Header */}
         <div className="h-16 px-6 border-b border-slate-100 flex items-center justify-between">
           <Link href="/mawqif" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#123B5D] to-[#1677A8] text-white flex items-center justify-center">
-              <Car size={18} />
-            </div>
+            <Image
+              src="/mawqif/logo-app.png"
+              alt="مواقف Mawaqif"
+              width={34}
+              height={34}
+              className="object-contain rounded-xl"
+            />
             <div>
               <span className="font-black text-base text-[#123B5D] block leading-none">مواقف</span>
               <span className="text-[10px] text-slate-400 font-medium">بوابة المستفيدين</span>
