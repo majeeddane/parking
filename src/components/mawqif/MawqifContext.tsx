@@ -72,6 +72,8 @@ interface MawqifContextType {
   submitApplication: (data: any) => string;
   updateProfile: (data: Partial<MawqifUser>) => void;
   markNotificationsRead: () => void;
+  clearNotifications: () => void;
+  deleteNotification: (id: number) => void;
 }
 
 const MawqifContext = createContext<MawqifContextType | undefined>(undefined);
@@ -291,9 +293,12 @@ export function MawqifProvider({ children }: { children: React.ReactNode }) {
   const submitApplication = (formData: any) => {
     if (!currentUser) return '';
 
-    const randomId = `PARK-2026-${Math.floor(10000 + Math.random() * 90000)}`;
+    // If user already had an existing application (e.g. rejected or needs_edit), retain the ID or generate a new one
+    const isResubmit = !!userApplication && (userApplication.status === 'rejected' || userApplication.status === 'needs_edit');
+    const appId = isResubmit && userApplication?.id ? userApplication.id : `PARK-2026-${Math.floor(10000 + Math.random() * 90000)}`;
+
     const newApp: UserApplication = {
-      id: randomId,
+      id: appId,
       submissionDate: new Date().toLocaleDateString('ar-SA', { day: 'numeric', month: 'long', year: 'numeric' }),
       status: 'pending',
       vehicleMake: formData.carMake,
@@ -304,18 +309,23 @@ export function MawqifProvider({ children }: { children: React.ReactNode }) {
       vehicleLicenseNumber: formData.vehicleLicenseNumber,
       isOwner: formData.isOwner,
       ownerRelation: formData.ownerRelation,
+      rejectionReason: undefined,
       documents: {
-        idDocument: formData.idDocumentData || (formData.idDocument ? { name: formData.idDocument.name, type: formData.idDocument.type, size: formData.idDocument.size, dataUrl: '' } : null),
-        drivingLicense: formData.drivingLicenseData || (formData.drivingLicense ? { name: formData.drivingLicense.name, type: formData.drivingLicense.type, size: formData.drivingLicense.size, dataUrl: '' } : null),
-        vehicleLicense: formData.vehicleLicenseData || (formData.vehicleLicense ? { name: formData.vehicleLicense.name, type: formData.vehicleLicense.type, size: formData.vehicleLicense.size, dataUrl: '' } : null),
-        carPhoto: formData.carPhotoData || (formData.carPhoto ? { name: formData.carPhoto.name, type: formData.carPhoto.type, size: formData.carPhoto.size, dataUrl: '' } : null),
+        idDocument: formData.idDocumentData || (formData.idDocument ? { name: formData.idDocument.name, type: formData.idDocument.type, size: formData.idDocument.size, dataUrl: '' } : userApplication?.documents?.idDocument || null),
+        drivingLicense: formData.drivingLicenseData || (formData.drivingLicense ? { name: formData.drivingLicense.name, type: formData.drivingLicense.type, size: formData.drivingLicense.size, dataUrl: '' } : userApplication?.documents?.drivingLicense || null),
+        vehicleLicense: formData.vehicleLicenseData || (formData.vehicleLicense ? { name: formData.vehicleLicense.name, type: formData.vehicleLicense.type, size: formData.vehicleLicense.size, dataUrl: '' } : userApplication?.documents?.vehicleLicense || null),
+        carPhoto: formData.carPhotoData || (formData.carPhoto ? { name: formData.carPhoto.name, type: formData.carPhoto.type, size: formData.carPhoto.size, dataUrl: '' } : userApplication?.documents?.carPhoto || null),
       },
     };
 
     const newNotif: NotificationItem = {
       id: Date.now(),
-      title: `تم إرسال طلب الاشتراك بنجاح (${randomId}) 📄`,
-      desc: 'تم استلام طلبك ومستنداتك بنجاح وجارٍ مراجعتها من قبل فريق التدقيق.',
+      title: isResubmit
+        ? `تمت إعادة إرسال طلب الاشتراك بعد التعديل (${appId}) 🔄`
+        : `تم إرسال طلب الاشتراك بنجاح (${appId}) 📄`,
+      desc: isResubmit
+        ? 'تم استلام بياناتك ومستنداتك المحدثة بنجاح وجارٍ إعادة تدقيقها من قبل فريق العمل.'
+        : 'تم استلام طلبك ومستنداتك بنجاح وجارٍ مراجعتها من قبل فريق التدقيق.',
       time: 'الآن',
       read: false,
     };
@@ -333,7 +343,7 @@ export function MawqifProvider({ children }: { children: React.ReactNode }) {
       saveAccountsDB(db);
     }
 
-    return randomId;
+    return appId;
   };
 
   const updateProfile = (data: Partial<MawqifUser>) => {
@@ -360,6 +370,29 @@ export function MawqifProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const clearNotifications = () => {
+    setNotifications([]);
+    if (currentUser) {
+      const db = getAccountsDB();
+      if (db[currentUser.id]) {
+        db[currentUser.id].notifications = [];
+        saveAccountsDB(db);
+      }
+    }
+  };
+
+  const deleteNotification = (id: number) => {
+    const updated = notifications.filter((n) => n.id !== id);
+    setNotifications(updated);
+    if (currentUser) {
+      const db = getAccountsDB();
+      if (db[currentUser.id]) {
+        db[currentUser.id].notifications = updated;
+        saveAccountsDB(db);
+      }
+    }
+  };
+
   return (
     <MawqifContext.Provider
       value={{
@@ -373,6 +406,8 @@ export function MawqifProvider({ children }: { children: React.ReactNode }) {
         submitApplication,
         updateProfile,
         markNotificationsRead,
+        clearNotifications,
+        deleteNotification,
       }}
     >
       {children}

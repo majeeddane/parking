@@ -14,7 +14,10 @@ import {
   Sparkles,
   ShieldCheck,
   PlusCircle,
-  AlertCircle
+  AlertCircle,
+  AlertTriangle,
+  RotateCcw,
+  FileSearch
 } from 'lucide-react';
 import MawqifSidebar from '@/components/mawqif/layout/MawqifSidebar';
 import { useMawqif } from '@/components/mawqif/MawqifContext';
@@ -24,7 +27,10 @@ export default function UserDashboardPage() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const { currentUser, userApplication, notifications, isLoggedIn } = useMawqif();
 
-  const isApproved = userApplication?.status === 'approved';
+  const isApproved = userApplication?.status === 'approved' || userApplication?.status === 'completed';
+  const isRejected = userApplication?.status === 'rejected';
+  const isNeedsEdit = userApplication?.status === 'needs_edit';
+  const isPending = userApplication?.status === 'pending';
   const hasApp = !!userApplication;
 
   return (
@@ -61,13 +67,29 @@ export default function UserDashboardPage() {
               )}
             </Link>
             
-            {hasApp ? (
+            {isApproved ? (
               <Link
                 href="/mawqif/dashboard/subscription"
                 className="mw-btn mw-btn-primary text-xs py-2 px-3.5 font-bold hidden sm:inline-flex"
               >
                 <QrCode size={15} />
                 عرض بطاقتي الرقمية
+              </Link>
+            ) : isRejected || isNeedsEdit ? (
+              <Link
+                href="/mawqif/apply"
+                className="mw-btn mw-btn-accent text-xs py-2 px-3.5 font-bold text-white hidden sm:inline-flex"
+              >
+                <RotateCcw size={15} />
+                تعديل وإعادة إرسال الطلب
+              </Link>
+            ) : isPending ? (
+              <Link
+                href={`/mawqif/track?id=${userApplication?.id}`}
+                className="mw-btn mw-btn-outline text-xs py-2 px-3.5 font-bold bg-white hidden sm:inline-flex"
+              >
+                <FileSearch size={15} />
+                متابعة حالة الطلب
               </Link>
             ) : (
               <Link
@@ -99,19 +121,39 @@ export default function UserDashboardPage() {
                 <p className="text-xs md:text-sm text-white/80 max-w-xl leading-relaxed">
                   {isApproved
                     ? 'اشتراكك في مواقف السيارات مجاني ومفعّل بنجاح لمدة 365 يومًا. يمكنك استخدام بطاقة الـ QR Code عند جميع البوابات المؤهلة.'
-                    : hasApp
+                    : isRejected
+                    ? 'تم رفض طلبك السابق. يمكنك الآن مراجعة سبب الرفض وتعديل بياناتك ومستنداتك وإعادة إرسال الطلب للمراجعة.'
+                    : isNeedsEdit
+                    ? 'يتطلب طلبك تعديل بعض المستندات. يرجى مراجعة الملاحظات وإعادة إرسال الطلب.'
+                    : isPending
                     ? 'طلبك لاشتراك المواقف المجاني قيد المراجعة والتدقيق من قبل فريق العمل المختص.'
                     : 'أهلاً بك! لم تقدم طلب اشتراك بعد. يمكنك الآن التقديم للحصول على اشتراك مجاني في مواقف السيارات لمدة سنة كاملة.'}
                 </p>
               </div>
 
-              {hasApp ? (
+              {isApproved ? (
                 <Link
                   href="/mawqif/dashboard/subscription"
                   className="inline-flex items-center justify-center gap-2 bg-[#19A974] hover:bg-[#14896a] text-white px-5 py-3 rounded-2xl text-xs md:text-sm font-bold shadow-md shadow-emerald-950/20 transition-all shrink-0"
                 >
                   <QrCode size={18} />
                   فتح بطاقة الاشتراك
+                </Link>
+              ) : isRejected || isNeedsEdit ? (
+                <Link
+                  href="/mawqif/apply"
+                  className="inline-flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-5 py-3 rounded-2xl text-xs md:text-sm font-bold shadow-md transition-all shrink-0"
+                >
+                  <RotateCcw size={18} />
+                  تعديل وإعادة الإرسال
+                </Link>
+              ) : isPending ? (
+                <Link
+                  href={`/mawqif/track?id=${userApplication?.id}`}
+                  className="inline-flex items-center justify-center gap-2 bg-white/20 hover:bg-white/30 text-white backdrop-blur-md px-5 py-3 rounded-2xl text-xs md:text-sm font-bold transition-all shrink-0"
+                >
+                  <FileSearch size={18} />
+                  تتبع حالة الطلب
                 </Link>
               ) : (
                 <Link
@@ -147,9 +189,9 @@ export default function UserDashboardPage() {
             <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-2">
               <span className="text-xs font-semibold text-slate-400 block">حالة الاشتراك</span>
               <div className="flex items-center gap-2">
-                <ShieldCheck size={18} className={isApproved ? 'text-[#1677A8]' : 'text-slate-400'} />
+                <ShieldCheck size={18} className={isApproved ? 'text-[#19A974]' : 'text-slate-400'} />
                 <span className={`text-base font-bold ${isApproved ? 'text-[#123B5D]' : 'text-slate-500'}`}>
-                  {isApproved ? 'اشتراك فعّال' : hasApp ? 'بانتظار الاعتماد' : 'غير مشترك'}
+                  {isApproved ? 'اشتراك فعّال' : hasApp ? (isRejected ? 'مرفوض' : isNeedsEdit ? 'بانتظار التعديل' : 'بانتظار الاعتماد') : 'غير مشترك'}
                 </span>
               </div>
               <span className="text-[11px] text-slate-400 block">
@@ -161,7 +203,7 @@ export default function UserDashboardPage() {
             <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-2">
               <span className="text-xs font-semibold text-slate-400 block">المدة المتبقية</span>
               <div className="flex items-center gap-2">
-                <Clock size={18} className="text-amber-500" />
+                <Clock size={18} className={isApproved ? 'text-emerald-500' : 'text-slate-400'} />
                 <span className="text-base font-bold text-slate-800">
                   {isApproved ? '365 يومًا' : '—'}
                 </span>
@@ -230,24 +272,66 @@ export default function UserDashboardPage() {
                     </div>
                   </div>
 
+                  {/* Rejection / Needs Edit Alert Banner inside Dashboard */}
+                  {(isRejected || isNeedsEdit) && (
+                    <div className={`p-4 rounded-2xl border space-y-2.5 ${
+                      isRejected ? 'bg-red-50 border-red-200 text-red-900' : 'bg-amber-50 border-amber-200 text-amber-900'
+                    }`}>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 font-bold text-xs md:text-sm">
+                          {isRejected ? <AlertTriangle size={16} className="text-red-600" /> : <AlertCircle size={16} className="text-amber-600" />}
+                          <span>{isRejected ? 'تم رفض الطلب' : 'يتطلب إجراءً وتعديلاً'}</span>
+                        </div>
+                        <Link
+                          href="/mawqif/apply"
+                          className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors inline-flex items-center gap-1 shadow-sm ${
+                            isRejected
+                              ? 'bg-red-600 hover:bg-red-700 text-white'
+                              : 'bg-amber-600 hover:bg-amber-700 text-white'
+                          }`}
+                        >
+                          <RotateCcw size={13} />
+                          تعديل وإعادة الإرسال الآن
+                        </Link>
+                      </div>
+                      <p className="text-xs leading-relaxed">
+                        {isRejected
+                          ? `سبب الرفض: ${userApplication.rejectionReason || 'عدم وضوح المستندات أو عدم مطابقتها للشروط.'}`
+                          : `الملاحظات: ${userApplication.rejectionReason || 'يرجى إعادة رفع المستندات المطلوبة.'}`}
+                      </p>
+                    </div>
+                  )}
+
                   {/* Progress Milestones */}
                   <div className="space-y-4 pt-2">
                     <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">المراحل المكتملة</h4>
                     <div className="space-y-3">
                       {[
                         { title: 'تم استلام وتوثيق طلبك إلكترونيًا', time: `${userApplication.submissionDate}`, done: true },
-                        { title: 'تدقيق الهوية ورخص القيادة والسير', time: 'فريق المراجعة', done: isApproved },
-                        { title: 'اعتماد الأهلية والموافقة النهائية', time: isApproved ? 'معتمد' : 'جارٍ التدقيق', done: isApproved },
+                        { title: 'تدقيق الهوية ورخص القيادة والسير', time: 'فريق المراجعة', done: isApproved || isRejected || isNeedsEdit },
+                        {
+                          title: isRejected ? 'تعذر استيفاء الشروط (مرفوض)' : isNeedsEdit ? 'مطلوب تعديل المستندات' : 'اعتماد الأهلية والموافقة النهائية',
+                          time: isApproved ? 'معتمد' : isRejected ? 'مرفوض' : isNeedsEdit ? 'بانتظار التعديل' : 'جارٍ التدقيق',
+                          done: isApproved,
+                          failed: isRejected,
+                          warning: isNeedsEdit
+                        },
                         { title: 'توليد بطاقة الاشتراك الرقمية', time: isApproved ? 'جاهزة' : 'لاحقاً', done: isApproved },
                       ].map((step, idx) => (
                         <div key={idx} className="flex items-center gap-3 text-xs">
                           <div className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px] shrink-0 ${
-                            step.done ? 'bg-[#19A974] text-white' : 'bg-slate-200 text-slate-400'
+                            step.done
+                              ? 'bg-[#19A974] text-white'
+                              : step.failed
+                              ? 'bg-red-500 text-white'
+                              : step.warning
+                              ? 'bg-amber-500 text-white'
+                              : 'bg-slate-200 text-slate-400'
                           }`}>
-                            {step.done ? '✓' : idx + 1}
+                            {step.done ? '✓' : step.failed ? '✕' : step.warning ? '!' : idx + 1}
                           </div>
                           <div className="flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                            <span className={`font-semibold ${step.done ? 'text-slate-800' : 'text-slate-400'}`}>{step.title}</span>
+                            <span className={`font-semibold ${step.done ? 'text-slate-800' : step.failed ? 'text-red-700' : step.warning ? 'text-amber-800' : 'text-slate-400'}`}>{step.title}</span>
                             <span className="text-[11px] text-slate-400">{step.time}</span>
                           </div>
                         </div>
@@ -287,22 +371,29 @@ export default function UserDashboardPage() {
                 </Link>
               </div>
 
-              <div className="space-y-3">
-                {notifications.slice(0, 3).map((n) => (
-                  <div
-                    key={n.id}
-                    className={`p-3.5 rounded-2xl border transition-all ${
-                      !n.read ? 'bg-blue-50/50 border-blue-200' : 'bg-slate-50 border-slate-100'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-bold text-[#123B5D]">{n.title}</span>
-                      <span className="text-[10px] text-slate-400">{n.time}</span>
+              {notifications.length === 0 ? (
+                <div className="p-6 text-center text-xs text-slate-400 space-y-1">
+                  <Bell size={24} className="text-slate-200 mx-auto mb-2" />
+                  <div>لا توجد إشعارات جديدة</div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {notifications.slice(0, 3).map((n) => (
+                    <div
+                      key={n.id}
+                      className={`p-3.5 rounded-2xl border transition-all ${
+                        !n.read ? 'bg-blue-50/50 border-blue-200' : 'bg-slate-50 border-slate-100'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-bold text-[#123B5D]">{n.title}</span>
+                        <span className="text-[10px] text-slate-400">{n.time}</span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 leading-relaxed">{n.desc}</p>
                     </div>
-                    <p className="text-[11px] text-slate-500 leading-relaxed">{n.desc}</p>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
 
               <div className="pt-2">
                 <Link

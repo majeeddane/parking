@@ -52,9 +52,9 @@ export default function MawqifFooter() {
             {/* Contact Icons */}
             <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
               {[
-                { icon: <Phone size={14} />, text: '920 000 000' },
                 { icon: <Mail size={14} />, text: 'info@mawqif.sa' },
                 { icon: <Clock size={14} />, text: 'الأحد – الخميس | 8ص – 5م' },
+                { icon: <MapPin size={14} />, text: 'الرياض، المملكة العربية السعودية' },
               ].map((item, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'rgba(255,255,255,0.7)', fontSize: '0.85rem' }}>
                   <span style={{ color: 'var(--mw-accent)' }}>{item.icon}</span>

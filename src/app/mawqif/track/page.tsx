@@ -121,6 +121,21 @@ function TrackContent() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
+    // Sync from server DB in background
+    fetch('/api/mawqif/db')
+      .then(res => res.json())
+      .then(json => {
+        if (json.success && json.data) {
+          try {
+            const localStr = localStorage.getItem('mawqif_accounts_db');
+            const localDB = localStr ? JSON.parse(localStr) : {};
+            const merged = { ...json.data, ...localDB };
+            localStorage.setItem('mawqif_accounts_db', JSON.stringify(merged));
+          } catch {}
+        }
+      })
+      .catch(() => {});
+
     const id = searchParams.get('id');
     if (id) {
       setQuery(id);
@@ -133,13 +148,98 @@ function TrackContent() {
     setIsLoading(true);
     setTimeout(() => {
       const clean = searchTerm.trim().toUpperCase();
-      const found = MOCK_APPLICATIONS.find(
-        (app) => app.id.toUpperCase() === clean || app.idNumber === clean
-      );
-      setActiveRecord(found || null);
+      let found: ApplicationRecord | null = null;
+
+      // 1. Check in real registered accounts DB (localStorage)
+      try {
+        const dbStr = localStorage.getItem('mawqif_accounts_db');
+        if (dbStr) {
+          const db = JSON.parse(dbStr);
+          for (const userId in db) {
+            const acc = db[userId];
+            if (acc && acc.application) {
+              const a = acc.application;
+              const u = acc.user || {};
+              const matchId = (a.id || '').toUpperCase() === clean;
+              const matchSub = (a.subscriptionNumber || '').toUpperCase() === clean;
+              const matchIdNum = (u.idNumber || '').trim() === clean;
+              const matchPhone = (u.phone || '').trim().replace(/\s+/g, '') === clean;
+
+              if (matchId || matchSub || matchIdNum || matchPhone) {
+                const status = (a.status || 'pending') as StatusType;
+                const isApproved = status === 'approved' || status === 'completed';
+                const isRejected = status === 'rejected';
+                const isNeedsEdit = status === 'needs_edit';
+
+                let stages: any[] = [];
+                if (isApproved) {
+                  stages = [
+                    { title: 'تم إرسال الطلب بنجاح', date: a.submissionDate, completed: true },
+                    { title: 'تم استلام وتوثيق المستندات', date: a.submissionDate, completed: true },
+                    { title: 'تمت مراجعة الوثائق وتدقيقها', completed: true },
+                    { title: 'صدر قرار الموافقة والاعتماد', completed: true },
+                    { title: 'تم إصدار بطاقة الاشتراك الرقمية', completed: true, current: true },
+                  ];
+                } else if (isRejected) {
+                  stages = [
+                    { title: 'تم إرسال الطلب', date: a.submissionDate, completed: true },
+                    { title: 'فحص المستندات والبيانات', completed: true },
+                    { title: 'عدم اكتمال متطلبات الأهلية أو المستندات', completed: false, failed: true },
+                    { title: 'الطلب مرفوض', completed: false },
+                    { title: 'إصدار الاشتراك', completed: false },
+                  ];
+                } else if (isNeedsEdit) {
+                  stages = [
+                    { title: 'تم إرسال الطلب', date: a.submissionDate, completed: true },
+                    { title: 'فحص المستندات والبيانات', completed: true },
+                    { title: 'مطلوب تعديل وإعادة رفع المستندات', completed: false, current: true },
+                    { title: 'إعادة التدقيق والاعتماد', completed: false },
+                    { title: 'إصدار الاشتراك', completed: false },
+                  ];
+                } else {
+                  // Pending
+                  stages = [
+                    { title: 'تم إرسال الطلب بنجاح', date: a.submissionDate, completed: true },
+                    { title: 'تم استلام وتوثيق المستندات', date: a.submissionDate, completed: true },
+                    { title: 'جارٍ تدقيق رخصة السير والبيانات', completed: false, current: true },
+                    { title: 'القرار النهائي والاعتماد', completed: false },
+                    { title: 'إصدار بطاقة الاشتراك الإلكترونية', completed: false },
+                  ];
+                }
+
+                found = {
+                  id: a.id,
+                  idNumber: u.idNumber || '',
+                  applicantName: u.fullName || 'مقدم الطلب',
+                  submissionDate: a.submissionDate || 'اليوم',
+                  vehicle: `${a.vehicleMake || ''} ${a.vehicleModel || ''} ${a.vehicleYear || ''}`.trim() || 'مركبة مسجلة',
+                  plate: a.plateNumber || '—',
+                  status: status,
+                  statusText: isApproved ? 'تمت الموافقة واعتماد الاشتراك' : isRejected ? 'لم تتم الموافقة على الطلب' : isNeedsEdit ? 'الطلب بانتظار تعديل المستندات' : 'قيد المراجعة والتدقيق',
+                  rejectionReason: a.rejectionReason,
+                  currentStep: isApproved ? 5 : isRejected || isNeedsEdit ? 3 : 2,
+                  stages: stages,
+                };
+                break;
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error searching DB in track page:', err);
+      }
+
+      // 2. Fallback to mock applications if not in DB
+      if (!found) {
+        found = MOCK_APPLICATIONS.find(
+          (app) => app.id.toUpperCase() === clean || app.idNumber === clean
+        ) || null;
+      }
+
+      setActiveRecord(found);
       setHasSearched(true);
       setIsLoading(false);
-    }, 400);
+    }, 300);
   };
 
   const handleSearch = (e: React.FormEvent) => {
@@ -269,10 +369,10 @@ function TrackContent() {
                 <div className="pt-2">
                   <Link
                     href="/mawqif/apply"
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-red-800 bg-white px-3 py-1.5 rounded-lg border border-red-200 hover:bg-red-50 transition-colors shadow-sm"
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-red-800 bg-white px-3.5 py-2 rounded-xl border border-red-200 hover:bg-red-50 transition-colors shadow-sm"
                   >
                     <Edit3 size={14} />
-                    تقديم طلب جديد مع تصحيح المستند
+                    تعديل وإعادة إرسال الطلب للمراجعة
                   </Link>
                 </div>
               </div>

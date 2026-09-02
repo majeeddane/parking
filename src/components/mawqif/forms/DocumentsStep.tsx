@@ -53,6 +53,7 @@ export default function DocumentsStep({ data, onChange, onNext, onBack }: Props)
           <FileUpload
             label="الهوية الوطنية / الإقامة"
             required={true}
+            initialData={data.idDocumentData}
             hint="صورة واضحة للوجهين أو ملف PDF"
             onFileChange={(file, fileData) => {
               onChange({ idDocument: file, idDocumentData: fileData });
@@ -69,6 +70,7 @@ export default function DocumentsStep({ data, onChange, onNext, onBack }: Props)
           <FileUpload
             label="رخصة القيادة"
             required={true}
+            initialData={data.drivingLicenseData}
             hint="يجب أن تكون الرخصة سارية المفعول"
             onFileChange={(file, fileData) => {
               onChange({ drivingLicense: file, drivingLicenseData: fileData });
@@ -85,6 +87,7 @@ export default function DocumentsStep({ data, onChange, onNext, onBack }: Props)
           <FileUpload
             label="رخصة السير (استمارة المركبة)"
             required={true}
+            initialData={data.vehicleLicenseData}
             hint="إثبات تسجيل المركبة وسريان الفحص والتأمين"
             onFileChange={(file, fileData) => {
               onChange({ vehicleLicense: file, vehicleLicenseData: fileData });
@@ -101,6 +104,7 @@ export default function DocumentsStep({ data, onChange, onNext, onBack }: Props)
           <FileUpload
             label="صورة للمركبة من الأمام"
             required={false}
+            initialData={data.carPhotoData}
             hint="صورة تظهر لوحة المركبة ومظهرها الخارجي"
             onFileChange={(file, fileData) => {
               onChange({ carPhoto: file, carPhotoData: fileData });

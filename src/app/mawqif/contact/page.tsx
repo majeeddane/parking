@@ -59,11 +59,11 @@ export default function ContactPage() {
                 <div className="space-y-4 text-xs md:text-sm">
                   <div className="flex items-start gap-3.5">
                     <div className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
-                      <Phone size={17} className="text-cyan-300" />
+                      <MessageSquare size={17} className="text-cyan-300" />
                     </div>
                     <div>
-                      <span className="text-white/60 block text-[11px]">الرقم الموحد</span>
-                      <span className="font-bold text-white font-mono" dir="ltr">920 000 000</span>
+                      <span className="text-white/60 block text-[11px]">الدعم والمساعدة الرقمية</span>
+                      <span className="font-bold text-white">الرد المباشر خلال 24 ساعة عمل</span>
                     </div>
                   </div>
 

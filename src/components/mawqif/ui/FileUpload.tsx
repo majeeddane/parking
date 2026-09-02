@@ -14,6 +14,7 @@ interface FileUploadProps {
   required?: boolean;
   accept?: string;
   maxSizeMB?: number;
+  initialData?: FileDataPayload | null;
   onFileChange?: (file: File | null, fileData?: FileDataPayload | null) => void;
   hint?: string;
 }
@@ -23,13 +24,18 @@ export default function FileUpload({
   required = false,
   accept = 'image/jpeg,image/png,image/webp,application/pdf',
   maxSizeMB = 10,
+  initialData,
   onFileChange,
   hint,
 }: FileUploadProps) {
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  const [file, setFile] = useState<{ name: string; type: string; size: number } | null>(
+    initialData ? { name: initialData.name, type: initialData.type, size: initialData.size } : null
+  );
+  const [preview, setPreview] = useState<string | null>(
+    initialData && initialData.dataUrl?.startsWith('data:image') ? initialData.dataUrl : null
+  );
   const [isDragging, setIsDragging] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadProgress, setUploadProgress] = useState(initialData ? 100 : 0);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

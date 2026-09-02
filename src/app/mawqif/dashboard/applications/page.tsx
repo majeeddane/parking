@@ -33,13 +33,38 @@ export default function UserApplicationsPage() {
             </h1>
           </div>
 
-          <Link
-            href="/mawqif/apply"
-            className="mw-btn mw-btn-primary text-xs py-2 px-3.5 font-bold"
-          >
-            <Plus size={15} />
-            تقديم طلب جديد
-          </Link>
+          {userApplication?.status === 'rejected' || userApplication?.status === 'needs_edit' ? (
+            <Link
+              href="/mawqif/apply"
+              className="mw-btn mw-btn-accent text-xs py-2 px-3.5 font-bold text-white"
+            >
+              <Plus size={15} />
+              تعديل وإعادة إرسال الطلب
+            </Link>
+          ) : userApplication?.status === 'pending' ? (
+            <Link
+              href={`/mawqif/track?id=${userApplication.id}`}
+              className="mw-btn mw-btn-outline text-xs py-2 px-3.5 font-bold bg-white"
+            >
+              <Eye size={15} />
+              متابعة حالة الطلب
+            </Link>
+          ) : userApplication?.status === 'approved' || userApplication?.status === 'completed' ? (
+            <Link
+              href="/mawqif/dashboard/subscription"
+              className="mw-btn mw-btn-primary text-xs py-2 px-3.5 font-bold"
+            >
+              عرض بطاقة الاشتراك
+            </Link>
+          ) : (
+            <Link
+              href="/mawqif/apply"
+              className="mw-btn mw-btn-primary text-xs py-2 px-3.5 font-bold"
+            >
+              <Plus size={15} />
+              تقديم طلب جديد
+            </Link>
+          )}
         </header>
 
         <main className="p-4 md:p-8 space-y-6 max-w-5xl">
@@ -79,14 +104,22 @@ export default function UserApplicationsPage() {
                         <td>
                           <StatusBadge status={app.status} size="sm" />
                         </td>
-                        <td>
+                        <td className="space-x-2 space-x-reverse">
                           <Link
                             href={`/mawqif/track?id=${app.id}`}
-                            className="mw-btn mw-btn-outline text-xs py-1 px-3 bg-slate-50"
+                            className="mw-btn mw-btn-outline text-xs py-1 px-3 bg-slate-50 inline-flex items-center gap-1"
                           >
                             <Eye size={13} />
                             عرض وتتبع
                           </Link>
+                          {(app.status === 'rejected' || app.status === 'needs_edit') && (
+                            <Link
+                              href="/mawqif/apply"
+                              className="mw-btn mw-btn-accent text-xs py-1 px-3 text-white inline-flex items-center gap-1"
+                            >
+                              تعديل وإعادة الإرسال
+                            </Link>
+                          )}
                         </td>
                       </tr>
                     ))}
