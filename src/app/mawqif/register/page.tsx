@@ -69,13 +69,13 @@ export default function RegisterPage() {
     return Object.keys(errs).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
 
     setIsLoading(true);
-    setTimeout(() => {
-      const res = register(
+    try {
+      const res = await register(
         {
           firstName: form.firstName.trim(),
           fatherName: form.fatherName.trim(),
@@ -95,7 +95,10 @@ export default function RegisterPage() {
         // Redirect to apply directly
         router.push('/mawqif/apply');
       }
-    }, 600);
+    } catch {
+      setIsLoading(false);
+      setErrors({ email: 'تعذر الاتصال بالخادم. يرجى المحاولة مرة أخرى.' });
+    }
   };
 
   return (

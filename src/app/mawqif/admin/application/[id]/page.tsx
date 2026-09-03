@@ -138,19 +138,19 @@ export default function AdminReviewApplicationPage() {
     notificationDesc: string,
     extraFields?: Record<string, any>
   ) => {
+    const notification = {
+      id: Date.now(),
+      title: notificationTitle,
+      desc: notificationDesc,
+      time: 'الآن',
+      read: false,
+    };
+
+    // 1. Update localStorage if available
     try {
       const dbStr = typeof window !== 'undefined' ? localStorage.getItem('mawqif_accounts_db') : null;
       if (dbStr) {
         const db = JSON.parse(dbStr);
-        let found = false;
-        const notification = {
-          id: Date.now(),
-          title: notificationTitle,
-          desc: notificationDesc,
-          time: 'الآن',
-          read: false,
-        };
-
         for (const userId in db) {
           const acc = db[userId];
           if (acc?.application && (acc.application.id === appId || acc.application.subscriptionNumber === appId)) {
@@ -159,31 +159,28 @@ export default function AdminReviewApplicationPage() {
               Object.assign(acc.application, extraFields);
             }
             acc.notifications = [notification, ...(acc.notifications || [])];
-            found = true;
             break;
           }
         }
-
-        if (found) {
-          // Save to localStorage
-          localStorage.setItem('mawqif_accounts_db', JSON.stringify(db));
-          // Sync status update to server API (cross-device)
-          fetch('/api/mawqif/db', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              action: 'update_status',
-              appId,
-              newStatus,
-              extraFields,
-              notification,
-            }),
-          }).catch(err => console.error('Failed to sync status to server:', err));
-        }
+        localStorage.setItem('mawqif_accounts_db', JSON.stringify(db));
       }
     } catch (e) {
-      console.error('Error updating status in DB:', e);
+      console.error('Error updating status in local DB:', e);
     }
+
+    // 2. Always sync status update directly to server API (cross-device across the world)
+    fetch('/api/mawqif/db', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      keepalive: true,
+      body: JSON.stringify({
+        action: 'update_status',
+        appId,
+        newStatus,
+        extraFields,
+        notification,
+      }),
+    }).catch(err => console.error('Failed to sync status to server:', err));
   };
 
   const handleApprove = () => {

@@ -66,10 +66,10 @@ interface MawqifContextType {
   isLoggedIn: boolean;
   userApplication: UserApplication | null;
   notifications: NotificationItem[];
-  login: (identifier: string, password?: string) => { success: boolean; error?: string };
-  register: (user: Partial<MawqifUser>, password?: string) => { success: boolean; error?: string };
+  login: (identifier: string, password?: string) => Promise<{ success: boolean; error?: string }>;
+  register: (user: Partial<MawqifUser>, password?: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
-  submitApplication: (data: any) => string;
+  submitApplication: (data: any) => Promise<string>;
   updateProfile: (data: Partial<MawqifUser>) => void;
   markNotificationsRead: () => void;
   clearNotifications: () => void;
@@ -146,16 +146,21 @@ export function MawqifProvider({ children }: { children: React.ReactNode }) {
   };
 
   const saveAccountsDB = (db: Record<string, AccountRecord>) => {
-    localStorage.setItem('mawqif_accounts_db', JSON.stringify(db));
-    // Persist to server API in background
+    try {
+      localStorage.setItem('mawqif_accounts_db', JSON.stringify(db));
+    } catch (e) {
+      console.warn('localStorage quota warning:', e);
+    }
+    // Persist to server API in background with keepalive
     fetch('/api/mawqif/db', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      keepalive: true,
       body: JSON.stringify({ action: 'sync_all', allAccounts: db }),
     }).catch(err => console.error('Failed to sync with server:', err));
   };
 
-  const login = (identifier: string, password?: string): { success: boolean; error?: string } => {
+  const login = async (identifier: string, password?: string): Promise<{ success: boolean; error?: string }> => {
     const cleanId = identifier.trim().toLowerCase();
     const cleanPhone = cleanId.replace(/\s+/g, '').replace(/^(\+966|00966)/, '0');
     const cleanPass = (password || '').trim();
@@ -164,11 +169,7 @@ export function MawqifProvider({ children }: { children: React.ReactNode }) {
       return { success: false, error: 'يرجى إدخال رقم الجوال أو البريد الإلكتروني أو رقم الهوية.' };
     }
 
-    const db = getAccountsDB();
-    const accountList = Object.values(db);
-
-    // Find account by phone, email, or idNumber
-    const foundAcc = accountList.find((acc) => {
+    const matcher = (acc: AccountRecord) => {
       const uPhone = (acc.user.phone || '').trim().replace(/\s+/g, '').replace(/^(\+966|00966)/, '0');
       const uEmail = (acc.user.email || '').trim().toLowerCase();
       const uIdNum = (acc.user.idNumber || '').trim();
@@ -178,7 +179,29 @@ export function MawqifProvider({ children }: { children: React.ReactNode }) {
         (uPhone && (uPhone === cleanId || uPhone === cleanPhone)) ||
         (uIdNum && uIdNum === cleanId)
       );
-    });
+    };
+
+    let db = getAccountsDB();
+    let accountList = Object.values(db);
+    let foundAcc = accountList.find(matcher);
+
+    // If not found in this device's localStorage, fetch latest from cloud server!
+    if (!foundAcc) {
+      try {
+        const res = await fetch('/api/mawqif/db', { cache: 'no-store' });
+        const json = await res.json();
+        if (json.success && json.data) {
+          db = { ...json.data, ...db };
+          try {
+            localStorage.setItem('mawqif_accounts_db', JSON.stringify(db));
+          } catch {}
+          accountList = Object.values(db);
+          foundAcc = accountList.find(matcher);
+        }
+      } catch (e) {
+        console.error('Cloud login check error:', e);
+      }
+    }
 
     if (!foundAcc) {
       return {
@@ -206,8 +229,18 @@ export function MawqifProvider({ children }: { children: React.ReactNode }) {
     return { success: true };
   };
 
-  const register = (data: Partial<MawqifUser>, password?: string): { success: boolean; error?: string } => {
-    const db = getAccountsDB();
+  const register = async (data: Partial<MawqifUser>, password?: string): Promise<{ success: boolean; error?: string }> => {
+    let db = getAccountsDB();
+
+    // Fetch latest cloud accounts to avoid duplicate collisions across devices
+    try {
+      const res = await fetch('/api/mawqif/db', { cache: 'no-store' });
+      const json = await res.json();
+      if (json.success && json.data) {
+        db = { ...json.data, ...db };
+      }
+    } catch {}
+
     const accountList = Object.values(db);
 
     const cleanEmail = (data.email || '').trim().toLowerCase();
@@ -272,6 +305,18 @@ export function MawqifProvider({ children }: { children: React.ReactNode }) {
     db[userId] = newRecord;
     saveAccountsDB(db);
 
+    // Direct, awaited sync to cloud server
+    try {
+      await fetch('/api/mawqif/db', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        keepalive: true,
+        body: JSON.stringify({ action: 'save_user', record: newRecord }),
+      });
+    } catch (e) {
+      console.error('Failed to immediately save user to cloud:', e);
+    }
+
     // Activate session
     setCurrentUser(newUser);
     setUserApplication(null);
@@ -290,7 +335,7 @@ export function MawqifProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('mawqif_active_user_id');
   };
 
-  const submitApplication = (formData: any) => {
+  const submitApplication = async (formData: any): Promise<string> => {
     if (!currentUser) return '';
 
     // If user already had an existing application (e.g. rejected or needs_edit), retain the ID or generate a new one
@@ -335,12 +380,28 @@ export function MawqifProvider({ children }: { children: React.ReactNode }) {
     setUserApplication(newApp);
     setNotifications(updatedNotifs);
 
-    // Update in DB
+    // Update in local DB
     const db = getAccountsDB();
     if (db[currentUser.id]) {
       db[currentUser.id].application = newApp;
       db[currentUser.id].notifications = updatedNotifs;
       saveAccountsDB(db);
+    }
+
+    // Direct, awaited sync to Supabase Cloud Server
+    try {
+      await fetch('/api/mawqif/db', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        keepalive: true,
+        body: JSON.stringify({
+          action: 'save_application',
+          application: newApp,
+          user: currentUser,
+        }),
+      });
+    } catch (e) {
+      console.error('Failed to immediately push application to cloud:', e);
     }
 
     return appId;

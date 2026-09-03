@@ -149,12 +149,15 @@ export default function ApplyPage() {
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
-    // Submit via Context
-    setTimeout(() => {
-      const generatedId = submitApplication(formData);
+    try {
+      const generatedId = await submitApplication(formData);
       setIsSubmitting(false);
       router.push(`/mawqif/apply/success?id=${generatedId}`);
-    }, 1200);
+    } catch (e) {
+      console.error('Submission error:', e);
+      setIsSubmitting(false);
+      alert('حدث خطأ أثناء تقديم الطلب. يرجى المحاولة مرة أخرى.');
+    }
   };
 
   return (

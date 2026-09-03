@@ -54,7 +54,46 @@ export default function FileUpload({
     }, 100);
   };
 
-  const handleFile = useCallback((f: File) => {
+const compressImageFile = (file: File, maxDim = 1200, quality = 0.78): Promise<string> => {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const src = e.target?.result as string;
+      if (!file.type.startsWith('image/')) {
+        return resolve(src || '');
+      }
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        } else {
+          resolve(src || '');
+        }
+      };
+      img.onerror = () => resolve(src || '');
+      img.src = src;
+    };
+    reader.onerror = () => resolve('');
+    reader.readAsDataURL(file);
+  });
+};
+
+  const handleFile = useCallback(async (f: File) => {
     setError(null);
     if (f.size > maxSizeMB * 1024 * 1024) {
       setError(`حجم الملف يتجاوز ${maxSizeMB}MB`);
@@ -62,9 +101,8 @@ export default function FileUpload({
     }
     setFile(f);
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const dataUrl = (e.target?.result as string) || '';
+    try {
+      const dataUrl = await compressImageFile(f);
       if (f.type.startsWith('image/')) {
         setPreview(dataUrl);
       } else {
@@ -73,11 +111,12 @@ export default function FileUpload({
       onFileChange?.(f, {
         name: f.name,
         type: f.type,
-        size: f.size,
+        size: Math.round(dataUrl.length * 0.75),
         dataUrl: dataUrl,
       });
-    };
-    reader.readAsDataURL(f);
+    } catch {
+      // Fallback
+    }
 
     simulateUpload(f);
   }, [maxSizeMB, onFileChange]);

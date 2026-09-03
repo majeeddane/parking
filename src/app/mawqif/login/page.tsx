@@ -20,7 +20,7 @@ function LoginContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!identifier.trim()) {
       setError('يرجى إدخال رقم الجوال أو البريد الإلكتروني أو رقم الهوية');
@@ -32,15 +32,18 @@ function LoginContent() {
     }
     setIsLoading(true);
     setError('');
-    setTimeout(() => {
-      const result = login(identifier, password);
+    try {
+      const result = await login(identifier, password);
       setIsLoading(false);
       if (!result.success) {
         setError(result.error || 'خطأ في تسجيل الدخول. تأكد من صحة البيانات.');
       } else {
         router.push(redirectTarget);
       }
-    }, 400);
+    } catch {
+      setIsLoading(false);
+      setError('حدث خطأ في تسجيل الدخول. يرجى المحاولة مرة أخرى.');
+    }
   };
 
   return (

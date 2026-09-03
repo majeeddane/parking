@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
@@ -38,9 +41,10 @@ export async function GET() {
 
     if (nErr) throw nErr;
 
-    // Reconstruct the same shape as localStorage (userId -> { user, application, notifications })
+    // Reconstruct the unified shape: userId -> { user, application, notifications }
     const db: Record<string, any> = {};
 
+    // 1. Process all registered users
     for (const u of users || []) {
       const userApp = (apps || []).find((a: any) => a.user_id === u.id) || null;
       const userNotifs = (notifs || [])
@@ -97,10 +101,136 @@ export async function GET() {
       };
     }
 
-    return NextResponse.json({ success: true, data: db });
+    // 2. Also ensure any application whose user wasn't in users is preserved
+    for (const a of apps || []) {
+      const alreadyLinked = Object.values(db).some((acc: any) => acc.application?.id === a.id);
+      if (!alreadyLinked) {
+        const tempKey = a.user_id || a.id;
+        db[tempKey] = {
+          user: {
+            id: a.user_id || tempKey,
+            fullName: 'مقدم طلب',
+            idNumber: '—',
+            phone: '—',
+            email: '—',
+          },
+          application: {
+            id: a.id,
+            submissionDate: a.submission_date,
+            status: a.status,
+            vehicleMake: a.vehicle_make,
+            vehicleModel: a.vehicle_model,
+            vehicleYear: a.vehicle_year,
+            vehicleColor: a.vehicle_color,
+            plateNumber: a.plate_number,
+            vehicleLicenseNumber: a.vehicle_license_number,
+            isOwner: a.is_owner,
+            ownerRelation: a.owner_relation,
+            rejectionReason: a.rejection_reason,
+            subscriptionNumber: a.subscription_number,
+            subscriptionStartDate: a.subscription_start,
+            subscriptionEndDate: a.subscription_end,
+            documents: {
+              idDocument: a.doc_id_document,
+              drivingLicense: a.doc_driving_license,
+              vehicleLicense: a.doc_vehicle_license,
+              carPhoto: a.doc_car_photo,
+            },
+          },
+          notifications: [],
+        };
+      }
+    }
+
+    return NextResponse.json({ success: true, data: db }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      },
+    });
   } catch (error: any) {
     console.error('Supabase GET Error:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}
+
+// =============================================
+// Helper: Safe User Upsert
+// =============================================
+async function safeUpsertUser(supabase: any, u: any) {
+  if (!u?.id) return null;
+
+  // Check if a user with this id_number or phone already exists
+  let targetId = u.id;
+  if (u.idNumber) {
+    const { data: existingById } = await supabase
+      .from('mawqif_users')
+      .select('id')
+      .eq('id_number', u.idNumber)
+      .maybeSingle();
+    if (existingById?.id) {
+      targetId = existingById.id;
+    }
+  }
+
+  const { data, error } = await supabase
+    .from('mawqif_users')
+    .upsert({
+      id: targetId,
+      first_name: u.firstName || null,
+      father_name: u.fatherName || null,
+      family_name: u.familyName || null,
+      full_name: u.fullName || `${u.firstName || ''} ${u.familyName || ''}`.trim() || 'مستخدم مواقف',
+      id_number: u.idNumber || null,
+      phone: u.phone || null,
+      email: u.email || null,
+      city: u.city || 'الرياض',
+      address: u.address || null,
+      date_of_birth: u.dateOfBirth || null,
+      password_hash: u.password || null,
+    }, { onConflict: 'id' })
+    .select('id')
+    .single();
+
+  if (error) {
+    console.error('SafeUpsertUser error:', error);
+  }
+  return targetId;
+}
+
+// =============================================
+// Helper: Safe Application Upsert
+// =============================================
+async function safeUpsertApplication(supabase: any, a: any, userId: string) {
+  if (!a?.id) return;
+
+  const { error } = await supabase
+    .from('mawqif_applications')
+    .upsert({
+      id: a.id,
+      user_id: userId,
+      submission_date: a.submissionDate || new Date().toLocaleDateString('ar-SA'),
+      status: a.status || 'pending',
+      vehicle_make: a.vehicleMake || null,
+      vehicle_model: a.vehicleModel || null,
+      vehicle_year: a.vehicleYear || null,
+      vehicle_color: a.vehicleColor || null,
+      plate_number: a.plateNumber || null,
+      vehicle_license_number: a.vehicleLicenseNumber || null,
+      is_owner: a.isOwner || 'yes',
+      owner_relation: a.ownerRelation || 'owner',
+      rejection_reason: a.rejectionReason || null,
+      subscription_number: a.subscriptionNumber || a.id,
+      subscription_start: a.subscriptionStartDate || null,
+      subscription_end: a.subscriptionEndDate || null,
+      doc_id_document: a.documents?.idDocument || null,
+      doc_driving_license: a.documents?.drivingLicense || null,
+      doc_vehicle_license: a.documents?.vehicleLicense || null,
+      doc_car_photo: a.documents?.carPhoto || null,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'id' });
+
+  if (error) {
+    console.error('SafeUpsertApplication error:', error);
   }
 }
 
@@ -113,141 +243,74 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { action } = body;
 
-    // ---- SAVE / UPSERT A USER RECORD ----
+    // ---- 1. SAVE / UPSERT A USER RECORD (User + App + Notifs) ----
     if (action === 'save_user') {
       const { record } = body;
       if (!record?.user?.id) {
         return NextResponse.json({ success: false, error: 'Missing user.id' }, { status: 400 });
       }
-      const u = record.user;
 
-      // Upsert user
-      const { error: uErr } = await supabase
-        .from('mawqif_users')
-        .upsert({
-          id: u.id,
-          first_name: u.firstName,
-          father_name: u.fatherName,
-          family_name: u.familyName,
-          full_name: u.fullName,
-          id_number: u.idNumber,
-          phone: u.phone,
-          email: u.email,
-          city: u.city,
-          address: u.address,
-          date_of_birth: u.dateOfBirth,
-          password_hash: u.password,
-        }, { onConflict: 'id' });
+      const userId = await safeUpsertUser(supabase, record.user);
 
-      if (uErr) throw uErr;
-
-      // Upsert application if present
-      if (record.application) {
-        const a = record.application;
-        const { error: aErr } = await supabase
-          .from('mawqif_applications')
-          .upsert({
-            id: a.id,
-            user_id: u.id,
-            submission_date: a.submissionDate,
-            status: a.status,
-            vehicle_make: a.vehicleMake,
-            vehicle_model: a.vehicleModel,
-            vehicle_year: a.vehicleYear,
-            vehicle_color: a.vehicleColor,
-            plate_number: a.plateNumber,
-            vehicle_license_number: a.vehicleLicenseNumber,
-            is_owner: a.isOwner,
-            owner_relation: a.ownerRelation,
-            rejection_reason: a.rejectionReason,
-            subscription_number: a.subscriptionNumber,
-            subscription_start: a.subscriptionStartDate,
-            subscription_end: a.subscriptionEndDate,
-            doc_id_document: a.documents?.idDocument || null,
-            doc_driving_license: a.documents?.drivingLicense || null,
-            doc_vehicle_license: a.documents?.vehicleLicense || null,
-            doc_car_photo: a.documents?.carPhoto || null,
-            updated_at: new Date().toISOString(),
-          }, { onConflict: 'id' });
-
-        if (aErr) throw aErr;
+      if (record.application && userId) {
+        await safeUpsertApplication(supabase, record.application, userId);
       }
 
-      // Upsert notifications
-      if (record.notifications?.length) {
-        // Delete old then insert
-        await supabase.from('mawqif_notifications').delete().eq('user_id', u.id);
+      if (record.notifications?.length && userId) {
+        await supabase.from('mawqif_notifications').delete().eq('user_id', userId);
         const notifsToInsert = record.notifications.map((n: any) => ({
-          user_id: u.id,
+          user_id: userId,
           title: n.title,
-          description: n.desc,
-          time_label: n.time,
-          is_read: n.read,
+          description: n.desc || n.description,
+          time_label: n.time || n.time_label || 'الآن',
+          is_read: n.read ?? n.is_read ?? false,
         }));
-        const { error: nErr } = await supabase.from('mawqif_notifications').insert(notifsToInsert);
-        if (nErr) throw nErr;
+        await supabase.from('mawqif_notifications').insert(notifsToInsert);
       }
 
-      return NextResponse.json({ success: true });
+      return NextResponse.json({ success: true, userId });
     }
 
-    // ---- SYNC ALL ACCOUNTS ----
+    // ---- 2. SAVE APPLICATION DIRECTLY ----
+    if (action === 'save_application') {
+      const { application, user } = body;
+      if (!application?.id) {
+        return NextResponse.json({ success: false, error: 'Missing application.id' }, { status: 400 });
+      }
+
+      let userId = user?.id || application.userId || 'usr_guest';
+      if (user?.id) {
+        const upsertedId = await safeUpsertUser(supabase, user);
+        if (upsertedId) userId = upsertedId;
+      }
+
+      await safeUpsertApplication(supabase, application, userId);
+      return NextResponse.json({ success: true, applicationId: application.id });
+    }
+
+    // ---- 3. SYNC ALL ACCOUNTS ----
     if (action === 'sync_all') {
       const { allAccounts } = body;
       if (!allAccounts) return NextResponse.json({ success: true });
 
       for (const userId of Object.keys(allAccounts)) {
-        const record = allAccounts[userId];
-        if (!record?.user?.id) continue;
-        const u = record.user;
+        try {
+          const record = allAccounts[userId];
+          if (!record?.user?.id) continue;
 
-        await supabase.from('mawqif_users').upsert({
-          id: u.id,
-          first_name: u.firstName,
-          father_name: u.fatherName,
-          family_name: u.familyName,
-          full_name: u.fullName,
-          id_number: u.idNumber,
-          phone: u.phone,
-          email: u.email,
-          city: u.city,
-          address: u.address,
-          date_of_birth: u.dateOfBirth,
-          password_hash: u.password,
-        }, { onConflict: 'id' });
-
-        if (record.application) {
-          const a = record.application;
-          await supabase.from('mawqif_applications').upsert({
-            id: a.id,
-            user_id: u.id,
-            submission_date: a.submissionDate,
-            status: a.status,
-            vehicle_make: a.vehicleMake,
-            vehicle_model: a.vehicleModel,
-            vehicle_year: a.vehicleYear,
-            vehicle_color: a.vehicleColor,
-            plate_number: a.plateNumber,
-            vehicle_license_number: a.vehicleLicenseNumber,
-            is_owner: a.isOwner,
-            owner_relation: a.ownerRelation,
-            rejection_reason: a.rejectionReason,
-            subscription_number: a.subscriptionNumber,
-            subscription_start: a.subscriptionStartDate,
-            subscription_end: a.subscriptionEndDate,
-            doc_id_document: a.documents?.idDocument || null,
-            doc_driving_license: a.documents?.drivingLicense || null,
-            doc_vehicle_license: a.documents?.vehicleLicense || null,
-            doc_car_photo: a.documents?.carPhoto || null,
-            updated_at: new Date().toISOString(),
-          }, { onConflict: 'id' });
+          const savedUserId = await safeUpsertUser(supabase, record.user);
+          if (record.application && savedUserId) {
+            await safeUpsertApplication(supabase, record.application, savedUserId);
+          }
+        } catch (itemErr) {
+          console.error(`Error syncing account ${userId}:`, itemErr);
         }
       }
 
       return NextResponse.json({ success: true });
     }
 
-    // ---- UPDATE APPLICATION STATUS ----
+    // ---- 4. UPDATE APPLICATION STATUS (Admin action) ----
     if (action === 'update_status') {
       const { appId, newStatus, extraFields, notification } = body;
 
@@ -256,10 +319,10 @@ export async function POST(request: NextRequest) {
         updated_at: new Date().toISOString(),
       };
 
-      if (extraFields?.rejectionReason)      updateData.rejection_reason    = extraFields.rejectionReason;
-      if (extraFields?.subscriptionNumber)   updateData.subscription_number = extraFields.subscriptionNumber;
-      if (extraFields?.subscriptionStartDate) updateData.subscription_start = extraFields.subscriptionStartDate;
-      if (extraFields?.subscriptionEndDate)   updateData.subscription_end   = extraFields.subscriptionEndDate;
+      if (extraFields?.rejectionReason)       updateData.rejection_reason    = extraFields.rejectionReason;
+      if (extraFields?.subscriptionNumber)    updateData.subscription_number = extraFields.subscriptionNumber;
+      if (extraFields?.subscriptionStartDate) updateData.subscription_start  = extraFields.subscriptionStartDate;
+      if (extraFields?.subscriptionEndDate)   updateData.subscription_end    = extraFields.subscriptionEndDate;
 
       const { data: appRow, error: aErr } = await supabase
         .from('mawqif_applications')
