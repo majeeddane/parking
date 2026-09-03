@@ -329,6 +329,27 @@ export default function ApplyPage() {
                   </span>
                 </div>
 
+                {/* Transparency and Zero-Payment Reassurance Banner */}
+                <div className="mb-6 p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border border-emerald-200/90 text-emerald-900 flex items-center justify-between gap-3 text-xs shadow-xs">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-[#19A974] text-white flex items-center justify-center shrink-0 shadow-xs">
+                      <ShieldCheck size={18} />
+                    </div>
+                    <div>
+                      <div className="font-extrabold text-[#123B5D] text-xs sm:text-sm">
+                        التقديم مجاني 100% للسنة الأولى (0 ريال)
+                      </div>
+                      <div className="text-slate-600 text-[11px] sm:text-xs">
+                        لا نطلب أي بطاقة بنكية أو وسيلة دفع إطلاقاً · تجديد اختياري بعد سنة بـ 49 ر.س فقط
+                      </div>
+                    </div>
+                  </div>
+                  <div className="hidden md:flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 bg-white/80 px-3 py-1 rounded-xl border border-emerald-100 shrink-0">
+                    <span className="w-2 h-2 rounded-full bg-[#19A974] animate-pulse" />
+                    <span>بدون أي التزام مالي</span>
+                  </div>
+                </div>
+
                 {/* Banner if application was rejected or needs edit */}
                 {isRejected && (
                   <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-red-50 border-2 border-red-200 text-red-900 space-y-2 shadow-sm mw-animate-fadeIn">

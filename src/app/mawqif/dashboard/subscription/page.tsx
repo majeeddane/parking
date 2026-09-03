@@ -394,6 +394,15 @@ export default function SubscriptionCardPage() {
                   <span>تاريخ البدء: {startDate}</span>
                   <span>الانتهاء: {endDate}</span>
                 </div>
+
+                {/* Transparency and Renewal Reassurance */}
+                <div className="mt-3 p-3 bg-emerald-50/80 rounded-2xl border border-emerald-200/70 text-emerald-900 text-xs flex items-center gap-2.5">
+                  <ShieldCheck size={18} className="text-[#19A974] shrink-0" />
+                  <div>
+                    <span className="font-bold text-[#123B5D] block">اشتراكك مجاني بالكامل لمدة سنة (0 ريال)</span>
+                    <span className="text-[11px] text-slate-600">بعد انتهاء السنة، لك كامل الحرية في التجديد السنوي الرمزي بـ 49 ر.س أو التوقف دون أي التزام.</span>
+                  </div>
+                </div>
               </div>
 
               {/* Digital Wallet Integration */}

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import {
   CheckCircle, Car, FileText, Clock, Award, Shield, Smartphone,
   Users, MapPin, TrendingUp, ChevronLeft, Star, BadgeCheck,
-  Zap, CreditCard, Sparkles
+  Zap, CreditCard, Sparkles, ShieldCheck, Lock
 } from 'lucide-react';
 import MawqifNavbar from '@/components/mawqif/layout/MawqifNavbar';
 import MawqifFooter from '@/components/mawqif/layout/MawqifFooter';
@@ -50,23 +50,37 @@ export default function MawqifHomePage() {
               </h1>
 
               <p className="text-sm sm:text-base text-slate-600 leading-relaxed max-w-lg mx-auto lg:mx-0">
-                إذا كنت مؤهلًا، يمكنك التقديم للحصول على تصريح واشتراك مجاني في مواقف السيارات لمدة 12 شهرًا، عبر خطوات إلكترونية فورية وميسرة.
+                برنامج اشتراك سنوي تجريبي مجاني 100% لسنتك الأولى بدون أي التزام مالي أو متطلبات دفع. احصل على تصريح رسمي لشبكة المواقف لمدة 12 شهرًا، مع حرية التجديد الرمزي بـ 49 ر.س فقط بعد عام إن رغبت.
               </p>
 
+              {/* Reassurance Trust Box */}
+              <div className="p-3.5 rounded-2xl bg-white/95 border border-emerald-200/90 shadow-xs flex items-center gap-3 text-right max-w-lg mx-auto lg:mx-0">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-[#19A974] flex items-center justify-center shrink-0 border border-emerald-100">
+                  <ShieldCheck size={22} />
+                </div>
+                <div className="text-xs text-slate-600 leading-snug">
+                  <div className="font-bold text-[#123B5D] flex items-center gap-1.5">
+                    <span>اطمئنان وشفافية كاملة:</span>
+                    <span className="text-[#19A974] font-black">لا نطلب أي بطاقة بنكية</span>
+                  </div>
+                  <span>التقديم مجاني بالكامل، وبدون أي تجديد تلقائي أو خصومات مالية مفاجئة.</span>
+                </div>
+              </div>
+
               {/* CTA Buttons */}
-              <div className="flex flex-col sm:flex-row gap-3 pt-2 justify-center lg:justify-start">
+              <div className="flex flex-col sm:flex-row gap-3 pt-1 justify-center lg:justify-start">
                 <Link
                   href="/mawqif/apply"
                   className="mw-btn mw-btn-primary py-3.5 px-7 font-bold text-sm sm:text-base shadow-md shadow-slate-900/10"
                 >
-                  قدّم طلبك الآن
+                  قدّم طلبك المجاني الآن
                   <ChevronLeft size={18} />
                 </Link>
                 <Link
-                  href="#eligibility"
+                  href="#trust-transparency"
                   className="mw-btn mw-btn-outline py-3.5 px-6 font-bold text-sm sm:text-base bg-white/80"
                 >
-                  تعرف على الشروط
+                  لماذا هو مجاني؟
                 </Link>
               </div>
 
@@ -359,6 +373,188 @@ export default function MawqifHomePage() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ======================== TRANSPARENCY & TRUST GUARANTEE ======================== */}
+      <section className="py-14 sm:py-24 bg-white border-t border-slate-200/80 relative overflow-hidden" id="trust-transparency">
+        {/* Background Subtle Highlights */}
+        <div className="absolute top-0 right-1/4 w-96 h-96 bg-blue-50/50 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-emerald-50/50 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="mw-container relative z-10">
+          {/* Header */}
+          <div className="text-center max-w-2xl mx-auto mb-12 sm:mb-16 space-y-3">
+            <div className="inline-flex items-center gap-1.5 bg-emerald-50 text-[#19A974] border border-emerald-200/70 px-4 py-1.5 rounded-full text-xs font-bold shadow-xs">
+              <ShieldCheck size={16} />
+              الشفافية المطلقة وضمان راحة البال
+            </div>
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#123B5D] tracking-tight">
+              لماذا الاشتراك مجاني في سنته الأولى؟ <br className="hidden sm:inline" />
+              <span className="text-[#1677A8]">وماذا يحدث بعد انتهاء السنة؟</span>
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-500 max-w-xl mx-auto leading-relaxed">
+              نؤمن بالوضوح التام والمصداقية مع جميع المستفيدين. إليك كل ما تحتاج معرفته حول نموذج البرنامج دون أي رسوم خفية أو شروط غامضة.
+            </p>
+          </div>
+
+          {/* 3 Core Trust Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+            {/* Card 1 */}
+            <div className="bg-[#F7F9FC] rounded-3xl p-6 sm:p-7 border border-slate-200 hover:border-blue-300 transition-all duration-300 hover:shadow-lg space-y-4">
+              <div className="w-12 h-12 rounded-2xl bg-blue-100/80 text-[#1677A8] flex items-center justify-center font-black text-xl">
+                1
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-lg font-black text-[#123B5D]">
+                  سنة أولى مجانية 100% (لماذا؟)
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                  يُقدّم البرنامج هذه السنة الأولى مجاناً بالكامل كمبادرة رقمية لتشجيع قائدي المركبات على تجربة المواقف الذكية، والمساهمة في خفض التكدس المروري والتسهيل على المواطنين والمقيمين.
+                </p>
+              </div>
+              <div className="pt-2 border-t border-slate-200/60 text-[11px] font-bold text-[#1677A8] flex items-center gap-1.5">
+                <CheckCircle size={14} className="text-[#19A974]" />
+                <span>اشتراك فعّال لمدة 12 شهرًا بقيمة 0 ريال</span>
+              </div>
+            </div>
+
+            {/* Card 2 */}
+            <div className="bg-[#F7F9FC] rounded-3xl p-6 sm:p-7 border border-emerald-200 bg-gradient-to-b from-emerald-50/30 to-white hover:border-emerald-300 transition-all duration-300 hover:shadow-lg space-y-4 relative">
+              <div className="absolute top-4 left-4 bg-[#19A974] text-white text-[10px] font-bold px-2.5 py-1 rounded-full">
+                ضمان الأمان
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-emerald-100/80 text-[#19A974] flex items-center justify-center font-black text-xl">
+                <Lock size={22} />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-lg font-black text-[#123B5D]">
+                  صفر بيانات بنكية (لا بطاقة ائتمان)
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                  لا نطلب إطلاقاً إدخال أي رقم بطاقة ائتمانية أو مدى أو حساب بنكي. التقديم يتم فقط بالهوية ورخصة سير المركبة للتأكد من الملكية، وبالتالي لا يمكن لأي جهة خصم أي مبالغ منك.
+                </p>
+              </div>
+              <div className="pt-2 border-t border-slate-200/60 text-[11px] font-bold text-emerald-700 flex items-center gap-1.5">
+                <ShieldCheck size={14} className="text-[#19A974]" />
+                <span>أمان رقمي كامل بدون أي مخاطرة مالية</span>
+              </div>
+            </div>
+
+            {/* Card 3 */}
+            <div className="bg-[#F7F9FC] rounded-3xl p-6 sm:p-7 border border-slate-200 hover:border-amber-300 transition-all duration-300 hover:shadow-lg space-y-4">
+              <div className="w-12 h-12 rounded-2xl bg-amber-100/80 text-amber-600 flex items-center justify-center font-black text-xl">
+                3
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-lg font-black text-[#123B5D]">
+                  بعد انتهاء السنة: الخيار لك بـ 49 ر.س
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                  بعد إتمام الـ 12 شهراً المجانية، إذا أعجبتك الخدمة ورغبت في الاستمرار، يمكنك التجديد السنوي بمبلغ رمزي 49 ريال فقط للسنة كاملة (أقل من 4.1 ر.س شهرياً). وإذا لم ترغب، يتوقف الاشتراك تلقائياً.
+                </p>
+              </div>
+              <div className="pt-2 border-t border-slate-200/60 text-[11px] font-bold text-amber-700 flex items-center gap-1.5">
+                <CheckCircle size={14} className="text-[#19A974]" />
+                <span>بدون تجديد تلقائي وبدون أي التزام إجباري</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Pricing & Comparison Card */}
+          <div className="bg-gradient-to-br from-[#123B5D] to-[#0d2a42] text-white rounded-3xl p-6 sm:p-10 shadow-xl overflow-hidden relative">
+            <div className="absolute top-0 left-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+            
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
+              {/* Left Column (Details) */}
+              <div className="lg:col-span-7 space-y-4 text-right">
+                <span className="text-xs font-bold text-[#38BDF8] uppercase tracking-wider block">
+                  وضوح كامل من اليوم الأول
+                </span>
+                <h3 className="text-2xl sm:text-3xl font-black leading-snug">
+                  استفد من سنتك المجانية الآن، <br />
+                  وقرّر لاحقاً إذا كنت ترغب بالتجديد الرمزي
+                </h3>
+                <p className="text-xs sm:text-sm text-white/80 leading-relaxed max-w-xl">
+                  لا توجد أي اشتراطات مخفية أو تجديد تلقائي يسحب من رصيدك. نحن نمنحك تجربة حقيقية متكاملة لمدة 365 يوماً دون أن تدفع هللة واحدة.
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                  <div className="flex items-center gap-2 text-xs text-white/90">
+                    <div className="w-5 h-5 rounded-full bg-emerald-500/20 text-[#19A974] flex items-center justify-center shrink-0 font-bold">
+                      ✓
+                    </div>
+                    <span>تصريح دخول إلكتروني فوري (QR)</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-white/90">
+                    <div className="w-5 h-5 rounded-full bg-emerald-500/20 text-[#19A974] flex items-center justify-center shrink-0 font-bold">
+                      ✓
+                    </div>
+                    <span>لا يتطلب رقم حساب أو بطاقة مدى</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-white/90">
+                    <div className="w-5 h-5 rounded-full bg-emerald-500/20 text-[#19A974] flex items-center justify-center shrink-0 font-bold">
+                      ✓
+                    </div>
+                    <span>إلغاء فوري بدون أي مطالبات مالية</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-white/90">
+                    <div className="w-5 h-5 rounded-full bg-emerald-500/20 text-[#19A974] flex items-center justify-center shrink-0 font-bold">
+                      ✓
+                    </div>
+                    <span>تجديد مستقبلي اختياري بـ 49 ر.س فقط</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Visual Price Boxes */}
+              <div className="lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                {/* Year 1 Box */}
+                <div className="bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/20 text-center space-y-2 relative overflow-hidden">
+                  <div className="inline-block bg-[#19A974] text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full">
+                    السنة الحالية (الأولى)
+                  </div>
+                  <div className="text-3xl sm:text-4xl font-black text-white">
+                    0 <span className="text-base font-bold text-emerald-300">ريال</span>
+                  </div>
+                  <span className="text-[11px] text-white/70 block">مجاني بالكامل 100%</span>
+                  <div className="pt-2 border-t border-white/10 text-[10px] text-white/80">
+                    لمدة 12 شهرًا بدون دفع
+                  </div>
+                </div>
+
+                {/* Year 2+ Box */}
+                <div className="bg-white/5 backdrop-blur-md rounded-2xl p-5 border border-white/10 text-center space-y-2">
+                  <div className="inline-block bg-white/20 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full">
+                    بعد انتهاء السنة (اختياري)
+                  </div>
+                  <div className="text-3xl sm:text-4xl font-black text-white">
+                    49 <span className="text-base font-bold text-cyan-200">ريال</span>
+                  </div>
+                  <span className="text-[11px] text-white/70 block">لكامل السنة (رمزي جداً)</span>
+                  <div className="pt-2 border-t border-white/10 text-[10px] text-white/80">
+                    فقط إن رغبت بالاستمرار
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Guarantee Strip */}
+            <div className="mt-8 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-right text-xs text-white/75">
+              <div className="flex items-center gap-2">
+                <ShieldCheck size={18} className="text-[#19A974] shrink-0" />
+                <span>ضمان المصداقية: لا توجد أي التزامات مالية ولا يتم سحب أي مبالغ بدون موافقتك الصريحة.</span>
+              </div>
+              <Link
+                href="/mawqif/apply"
+                className="mw-btn bg-[#19A974] hover:bg-[#158f62] text-white font-bold px-6 py-2.5 rounded-xl shadow-md text-xs shrink-0"
+              >
+                ابدأ سنتك المجانية الآن
+                <ChevronLeft size={16} />
+              </Link>
+            </div>
+          </div>
+
         </div>
       </section>
 
