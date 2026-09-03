@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { CheckCircle2, Copy, Check, Home, FileSearch, Clock, ShieldCheck, QrCode } from 'lucide-react';
 import MawqifNavbar from '@/components/mawqif/layout/MawqifNavbar';
 import MawqifFooter from '@/components/mawqif/layout/MawqifFooter';
+import MawqifLogo from '@/components/mawqif/ui/MawqifLogo';
 import { useMawqif } from '@/components/mawqif/MawqifContext';
 
 function SuccessContent() {
@@ -25,6 +26,10 @@ function SuccessContent() {
       <div className="mw-container w-full">
         <div className="max-w-xl mx-auto bg-white rounded-3xl p-6 md:p-10 border border-slate-200/80 shadow-xl shadow-slate-200/50 text-center space-y-6 mw-animate-scaleIn">
           
+          <div className="flex justify-center mb-1">
+            <MawqifLogo variant="icon" size="md" href="/mawqif" />
+          </div>
+
           {/* Animated Success Icon */}
           <div className="w-20 h-20 md:w-24 md:h-24 bg-emerald-50 text-[#19A974] rounded-full flex items-center justify-center mx-auto border-4 border-emerald-100/80 shadow-inner">
             <CheckCircle2 size={48} className="animate-bounce" />

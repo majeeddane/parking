@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Menu, X, Bell, User, LogIn, FileText, UserPlus, LogOut, LayoutDashboard } from 'lucide-react';
 import { useMawqif } from '@/components/mawqif/MawqifContext';
+import MawqifLogo from '@/components/mawqif/ui/MawqifLogo';
 
 const navLinks = [
   { href: '/mawqif', label: 'الرئيسية' },
@@ -49,20 +50,7 @@ export default function MawqifNavbar() {
             height: '72px',
           }}>
             {/* Logo */}
-            <Link href="/mawqif" className="flex items-center gap-2.5 shrink-0" style={{ textDecoration: 'none' }}>
-              <Image
-                src="/mawqif/logo-app.png"
-                alt="مواقف Mawaqif"
-                width={38}
-                height={38}
-                className="object-contain rounded-xl"
-                priority
-              />
-              <div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--mw-primary)', lineHeight: 1.1, letterSpacing: '-0.02em' }}>مواقف</div>
-                <div style={{ fontSize: '0.6rem', color: 'var(--mw-secondary)', fontWeight: 700, lineHeight: 1, letterSpacing: '0.08em', textTransform: 'uppercase' }}>MAWAQIF</div>
-              </div>
-            </Link>
+            <MawqifLogo variant="icon" size="md" href="/mawqif" />
 
             {/* Desktop Nav */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }} className="mw-hide-mobile">
@@ -177,19 +165,9 @@ export default function MawqifNavbar() {
         overflow: 'hidden',
       }}>
         <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--mw-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Link href="/mawqif" className="flex items-center gap-2.5" style={{ textDecoration: 'none' }} onClick={() => setMobileOpen(false)}>
-            <Image
-              src="/mawqif/logo-app.png"
-              alt="مواقف Mawaqif"
-              width={34}
-              height={34}
-              className="object-contain rounded-xl"
-            />
-            <div>
-              <div style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--mw-primary)', lineHeight: 1.15, letterSpacing: '-0.02em' }}>مواقف</div>
-              <div style={{ fontSize: '0.55rem', color: 'var(--mw-secondary)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>MAWAQIF</div>
-            </div>
-          </Link>
+          <div onClick={() => setMobileOpen(false)}>
+            <MawqifLogo variant="icon" size="sm" href="/mawqif" />
+          </div>
           <button onClick={() => setMobileOpen(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--mw-muted)', padding: '0.25rem' }}>
             <X size={20} />
           </button>

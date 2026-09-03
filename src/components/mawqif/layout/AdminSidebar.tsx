@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
@@ -53,9 +54,14 @@ export default function AdminSidebar({ mobileOpen, onCloseMobile }: Props) {
         {/* Brand Header */}
         <div className="h-16 px-6 border-b border-white/10 flex items-center justify-between">
           <Link href="/mawqif/admin" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-[#19A974] text-white flex items-center justify-center font-bold">
-              م
-            </div>
+            <Image
+              src="/mawqif/logo-icon-white.png"
+              alt="شعار مواقف"
+              width={34}
+              height={34}
+              className="object-contain shrink-0"
+              priority
+            />
             <div>
               <span className="font-extrabold text-base tracking-tight block leading-none">مواقف | الإدارة</span>
               <span className="text-[10px] text-cyan-300 font-semibold">بوابة الموظفين والمشرفين</span>

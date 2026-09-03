@@ -37,10 +37,22 @@ const thmanyah = localFont({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://mawqif.sa'),
   title: "مواقف | برنامج الاشتراك المجاني لمواقف السيارات",
   description: "خدمة التقديم على اشتراك مجاني في مواقف السيارات لمدة سنة كاملة وفق أعلى المعايير الرقمية.",
   icons: {
-    icon: '/logo.png',
+    icon: [
+      { url: '/mawqif/logo-icon.png', type: 'image/png' },
+      { url: '/favicon.ico' },
+      { url: '/logo.png', type: 'image/png' },
+    ],
+    shortcut: '/mawqif/logo-icon.png',
+    apple: '/mawqif/logo-app.png',
+  },
+  openGraph: {
+    title: "مواقف | برنامج الاشتراك المجاني لمواقف السيارات",
+    description: "احصل على اشتراك مجاني في مواقف السيارات لمدة سنة كاملة. قدّم طلبك إلكترونيًا بخطوات سهلة وسريعة.",
+    images: [{ url: '/mawqif/logo.png', width: 420, height: 490, alt: 'شعار مواقف' }],
   },
 };
 

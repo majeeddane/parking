@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   Menu,
   FileCheck,
@@ -194,9 +195,18 @@ export default function AdminDashboardPage() {
             >
               <Menu size={20} />
             </button>
-            <h1 className="text-base md:text-lg font-bold text-[#123B5D]">
-              لوحة قيادة إدارة المشرف والدعم الفني
-            </h1>
+            <div className="flex items-center gap-2.5">
+              <Image
+                src="/mawqif/logo-icon.png"
+                alt="شعار مواقف"
+                width={30}
+                height={30}
+                className="object-contain shrink-0"
+              />
+              <h1 className="text-base md:text-lg font-bold text-[#123B5D]">
+                لوحة قيادة إدارة المشرف والدعم الفني
+              </h1>
+            </div>
           </div>
 
           <div className="flex items-center gap-2">

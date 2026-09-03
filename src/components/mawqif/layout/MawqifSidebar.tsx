@@ -80,17 +80,18 @@ export default function MawqifSidebar({ mobileOpen, onCloseMobile }: Props) {
       >
         {/* Brand Header */}
         <div className="h-16 px-6 border-b border-slate-100 flex items-center justify-between">
-          <Link href="/mawqif" className="flex items-center gap-2.5">
+          <Link href="/mawqif" className="flex items-center gap-2.5" style={{ textDecoration: 'none' }}>
             <Image
-              src="/mawqif/logo-app.png"
-              alt="مواقف Mawaqif"
+              src="/mawqif/logo-icon.png"
+              alt="شعار مواقف"
               width={34}
               height={34}
-              className="object-contain rounded-xl"
+              className="object-contain shrink-0"
+              priority
             />
             <div>
               <span className="font-black text-base text-[#123B5D] block leading-none">مواقف</span>
-              <span className="text-[10px] text-slate-400 font-medium">بوابة المستفيدين</span>
+              <span className="text-[10px] text-[#1677A8] font-bold">بوابة المستفيدين</span>
             </div>
           </Link>
           {onCloseMobile && (

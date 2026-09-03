@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import MawqifNavbar from '@/components/mawqif/layout/MawqifNavbar';
 import MawqifFooter from '@/components/mawqif/layout/MawqifFooter';
+import MawqifLogo from '@/components/mawqif/ui/MawqifLogo';
 import StatusBadge, { StatusType } from '@/components/mawqif/ui/StatusBadge';
 import { useMawqif, UserApplication } from '@/components/mawqif/MawqifContext';
 
@@ -201,7 +202,10 @@ function TrackContent() {
       <div className="mw-container">
         
         {/* Header Title */}
-        <div className="text-center max-w-xl mx-auto mb-8 space-y-2">
+        <div className="text-center max-w-xl mx-auto mb-8 space-y-3">
+          <div className="flex justify-center mb-1">
+            <MawqifLogo variant="icon" size="lg" href="/mawqif" />
+          </div>
           <div className="inline-flex items-center gap-1.5 bg-blue-50 text-[#1677A8] px-3.5 py-1 rounded-full text-xs font-bold">
             <ShieldCheck size={14} />
             البوابة الآمنة لمتابعة الطلبات

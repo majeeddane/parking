@@ -63,15 +63,19 @@ function LoginContent() {
           
           {/* Header / Logo */}
           <div className="text-center space-y-3">
-            <Link href="/mawqif" className="inline-block transition-transform hover:scale-105">
+            <Link href="/mawqif" className="inline-flex items-center gap-3 transition-transform hover:scale-105" style={{ textDecoration: 'none' }}>
               <Image
-                src="/mawqif/logo-app.png"
-                alt="مواقف Mawaqif"
-                width={64}
-                height={64}
-                className="mx-auto drop-shadow-md rounded-2xl"
+                src="/mawqif/logo-icon.png"
+                alt="شعار مواقف MAWAQIF"
+                width={56}
+                height={56}
+                className="object-contain drop-shadow-sm"
                 priority
               />
+              <div className="text-right">
+                <span className="font-black text-2xl text-[#123B5D] block leading-none">مواقف</span>
+                <span className="text-[10px] text-[#1677A8] font-black tracking-widest uppercase">MAWAQIF</span>
+              </div>
             </Link>
             <h1 className="text-2xl font-extrabold text-[#123B5D]">تسجيل الدخول</h1>
             <p className="text-xs md:text-sm text-slate-500">

@@ -2,6 +2,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { Mail, Clock, MapPin } from 'lucide-react';
+import MawqifLogo from '@/components/mawqif/ui/MawqifLogo';
 
 const footerLinks = {
   main: [
@@ -27,19 +28,7 @@ export default function MawqifFooter() {
           {/* Brand & Contacts */}
           <div className="space-y-4">
             {/* Official Logo on dark background */}
-            <Link href="/mawqif" className="inline-flex items-center gap-3 group">
-              <Image
-                src="/mawqif/logo-icon-white.png"
-                alt="مواقف Mawaqif"
-                width={46}
-                height={46}
-                className="object-contain group-hover:scale-105 transition-transform duration-200"
-              />
-              <div>
-                <div className="text-xl font-black text-white leading-tight tracking-tight">مواقف</div>
-                <div className="text-[10px] text-[#19A974] font-bold tracking-widest uppercase">MAWAQIF</div>
-              </div>
-            </Link>
+            <MawqifLogo variant="icon" isWhite size="lg" subtitle="MAWAQIF" href="/mawqif" />
 
             <p className="text-xs sm:text-sm text-white/75 leading-relaxed">
               اشتراكك المجاني يبدأ من هنا. برنامج متكامل لتيسير الوصول إلى مواقف السيارات بشكل مجاني لمدة سنة كاملة.
@@ -129,14 +118,16 @@ export default function MawqifFooter() {
       {/* Bottom Bar */}
       <div className="border-t border-white/10 py-4 text-xs text-white/60">
         <div className="mw-container flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-right">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <Image
-              src="/mawqif/logo-horizontal-white.png"
-              alt="مواقف"
-              width={80}
-              height={18}
-              className="object-contain opacity-60"
+              src="/mawqif/logo-icon-white.png"
+              alt="شعار مواقف"
+              width={20}
+              height={20}
+              className="object-contain opacity-75 shrink-0"
             />
+            <span className="font-bold text-white/80">مواقف | MAWAQIF</span>
+            <span className="text-white/30">·</span>
             <span>© 2026 جميع الحقوق محفوظة.</span>
           </div>
           <div className="flex items-center gap-4">

@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   Menu,
   ChevronRight,
@@ -268,7 +269,16 @@ export default function AdminReviewApplicationPage() {
               <Menu size={20} />
             </button>
             <div className="flex items-center gap-2 text-xs md:text-sm text-slate-500">
-              <Link href="/mawqif/admin" className="hover:text-[#1677A8]">لوحة الإدارة</Link>
+              <Link href="/mawqif/admin" className="hover:text-[#1677A8] flex items-center gap-1.5 font-semibold">
+                <Image
+                  src="/mawqif/logo-icon.png"
+                  alt="شعار مواقف"
+                  width={22}
+                  height={22}
+                  className="object-contain"
+                />
+                <span>لوحة الإدارة</span>
+              </Link>
               <span>›</span>
               <span className="font-mono font-bold text-[#123B5D]" dir="ltr">{appId}</span>
             </div>

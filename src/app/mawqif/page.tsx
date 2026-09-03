@@ -27,9 +27,20 @@ export default function MawqifHomePage() {
             {/* Right: Text Content */}
             <div className="space-y-4 sm:space-y-6 text-center lg:text-right mw-animate-fadeIn">
               {/* Tag */}
-              <div className="inline-flex items-center gap-1.5 bg-emerald-50 text-[#19A974] border border-emerald-200/80 px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-bold shadow-xs">
-                <Sparkles size={14} className="shrink-0" />
-                برنامج الاشتراك السنوي المجاني 100%
+              <div className="inline-flex items-center gap-2 bg-white/95 border border-slate-200/90 px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-bold shadow-xs">
+                <Image
+                  src="/mawqif/logo-icon.png"
+                  alt="شعار مواقف"
+                  width={22}
+                  height={22}
+                  className="object-contain shrink-0"
+                />
+                <span className="text-[#123B5D]">المنصة الرسمية</span>
+                <span className="text-slate-300">·</span>
+                <span className="text-[#19A974] flex items-center gap-1">
+                  <Sparkles size={14} className="shrink-0" />
+                  برنامج الاشتراك السنوي المجاني 100%
+                </span>
               </div>
 
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#123B5D] leading-tight tracking-tight">
