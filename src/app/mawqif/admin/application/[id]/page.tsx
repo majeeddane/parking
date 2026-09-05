@@ -24,7 +24,8 @@ import {
   MapPin,
   Calendar,
   FileCheck,
-  FileDown
+  FileDown,
+  Sparkles
 } from 'lucide-react';
 import AdminSidebar from '@/components/mawqif/layout/AdminSidebar';
 import StatusBadge, { StatusType } from '@/components/mawqif/ui/StatusBadge';
@@ -36,22 +37,9 @@ export default function AdminReviewApplicationPage() {
 
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [currentStatus, setCurrentStatus] = useState<StatusType>('pending');
-  const [applicantData, setApplicantData] = useState<any>({
-    fullName: 'محمد أحمد العتيبي',
-    idNumber: '1082345678',
-    phone: '0501234567',
-    email: 'm.otaibi@example.com',
-    city: 'الرياض',
-    address: 'حي النرجس، شارع أنس بن مالك',
-    vehicleMake: 'Toyota',
-    vehicleModel: 'Camry',
-    vehicleYear: '2024',
-    vehicleColor: 'أبيض لؤلؤي',
-    plateNumber: 'أ ب ج 1234',
-    vehicleLicenseNumber: '2049182390',
-    submissionDate: '28 أغسطس 2026',
-    documents: null,
-  });
+  const [applicantData, setApplicantData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [notFound, setNotFound] = useState<boolean>(false);
 
   const [docStatuses, setDocStatuses] = useState<Record<string, 'approved' | 'rejected' | 'pending'>>({
     id: 'pending',
@@ -65,31 +53,59 @@ export default function AdminReviewApplicationPage() {
   const [rejectionReason, setRejectionReason] = useState('');
   const [modModalOpen, setModModalOpen] = useState(false);
   const [modNote, setModNote] = useState('');
-  const [zoomModalImage, setZoomModalImage] = useState<{ src: string; title: string; name?: string } | null>(null);
+  const [zoomModalImage, setZoomModalImage] = useState<{ src: string; title: string; name?: string; isPdf?: boolean } | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Load actual user application data - first from localStorage, then sync from server
-  const loadAppData = async (db: Record<string, any>) => {
+  const loadAppData = (db: Record<string, any>) => {
     for (const userId in db) {
       const acc = db[userId];
-      if (acc?.application && (acc.application.id === appId || acc.application.subscriptionNumber === appId)) {
+      if (
+        acc?.application &&
+        (acc.application.id === appId ||
+          acc.application.subscriptionNumber === appId ||
+          acc.user?.id === appId ||
+          userId === appId)
+      ) {
         setCurrentStatus(acc.application.status || 'pending');
         setApplicantData({
-          fullName: acc.user?.fullName || `${acc.user?.firstName || ''} ${acc.user?.familyName || ''}`.trim(),
+          isAccountOnly: false,
+          userId: acc.user?.id || userId,
+          fullName: acc.user?.fullName || `${acc.user?.firstName || ''} ${acc.user?.familyName || ''}`.trim() || 'مستفيد جديد',
           idNumber: acc.user?.idNumber || '—',
           phone: acc.user?.phone || '—',
           email: acc.user?.email || '—',
           city: acc.user?.city || 'الرياض',
           address: acc.user?.address || 'العنوان المسجل',
-          vehicleMake: acc.application.vehicleMake || 'Toyota',
-          vehicleModel: acc.application.vehicleModel || 'Camry',
-          vehicleYear: acc.application.vehicleYear || '2024',
-          vehicleColor: acc.application.vehicleColor || 'فضي',
-          plateNumber: acc.application.plateNumber || 'أ ب ج 1234',
-          vehicleLicenseNumber: acc.application.vehicleLicenseNumber || '2049182390',
+          vehicleMake: acc.application.vehicleMake || '—',
+          vehicleModel: acc.application.vehicleModel || '—',
+          vehicleYear: acc.application.vehicleYear || '—',
+          vehicleColor: acc.application.vehicleColor || '—',
+          plateNumber: acc.application.plateNumber || '—',
+          vehicleLicenseNumber: acc.application.vehicleLicenseNumber || '—',
           submissionDate: acc.application.submissionDate || 'اليوم',
           documents: acc.application.documents || null,
         });
+        setIsLoading(false);
+        setNotFound(false);
+        return true;
+      } else if (acc?.user && (acc.user.id === appId || userId === appId)) {
+        // User registered account, but has not completed vehicle / documents application yet
+        setCurrentStatus('pending');
+        setApplicantData({
+          isAccountOnly: true,
+          userId: acc.user?.id || userId,
+          fullName: acc.user?.fullName || `${acc.user?.firstName || ''} ${acc.user?.familyName || ''}`.trim() || 'مستخدم مسجل',
+          idNumber: acc.user?.idNumber || '—',
+          phone: acc.user?.phone || '—',
+          email: acc.user?.email || '—',
+          city: acc.user?.city || 'الرياض',
+          address: acc.user?.address || 'العنوان المسجل',
+          submissionDate: 'مسجل جديد',
+          documents: null,
+        });
+        setIsLoading(false);
+        setNotFound(false);
         return true;
       }
     }
@@ -97,23 +113,23 @@ export default function AdminReviewApplicationPage() {
   };
 
   useEffect(() => {
-    // Load from localStorage first (instant)
+    // 1. Load from localStorage first if available
     try {
       const dbStr = typeof window !== 'undefined' ? localStorage.getItem('mawqif_accounts_db') : null;
       if (dbStr) {
-        loadAppData(JSON.parse(dbStr));
+        const found = loadAppData(JSON.parse(dbStr));
+        if (found) setIsLoading(false);
       }
     } catch (e) {
       console.error(e);
     }
 
-    // Then fetch from server for cross-device data
+    // 2. Then fetch from server for live cross-device data
     fetch('/api/mawqif/db', { cache: 'no-store' })
-      .then(res => res.json())
-      .then(json => {
+      .then((res) => res.json())
+      .then((json) => {
         if (json.success && json.data) {
           const serverDB = json.data;
-          // Merge with local
           let localDB: Record<string, any> = {};
           try {
             const ls = typeof window !== 'undefined' ? localStorage.getItem('mawqif_accounts_db') : null;
@@ -121,10 +137,20 @@ export default function AdminReviewApplicationPage() {
           } catch {}
           const merged = { ...localDB, ...serverDB };
           localStorage.setItem('mawqif_accounts_db', JSON.stringify(merged));
-          loadAppData(merged);
+          const found = loadAppData(merged);
+          if (!found) {
+            setIsLoading(false);
+            setNotFound(true);
+          }
+        } else {
+          setIsLoading(false);
+          setNotFound(true);
         }
       })
-      .catch(() => {});
+      .catch((err) => {
+        console.error('Failed to load application:', err);
+        setIsLoading(false);
+      });
   }, [appId]);
 
   const showToast = (msg: string) => {
@@ -228,7 +254,7 @@ export default function AdminReviewApplicationPage() {
     showToast('تم إرسال طلب التعديل إلى حساب المستفيد بنجاح.');
   };
 
-  const docs = applicantData.documents || {};
+  const docs = applicantData?.documents || {};
   const idDoc = docs.idDocument;
   const drivingDoc = docs.drivingLicense;
   const vehicleDoc = docs.vehicleLicense;
@@ -318,34 +344,37 @@ export default function AdminReviewApplicationPage() {
               <div className="flex flex-col items-center justify-center p-2 text-center">
                 <FileText size={38} className="text-red-600 group-hover:scale-110 transition-transform mb-1" />
                 <span className="text-[11px] font-bold text-slate-700 truncate max-w-[90%]">{doc.name || 'ملف PDF'}</span>
-                <span className="text-[10px] text-red-600 font-semibold mt-0.5">انقر لمعاينة ملف PDF</span>
+                <span className="text-[10px] text-red-600 font-semibold mt-1">اضغط للمعاينة والتحميل</span>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center p-2 text-center">
-                <FileText size={32} className="text-[#1677A8] group-hover:scale-110 transition-transform" />
-                <span className="text-[10px] text-slate-600 font-semibold mt-1">
-                  {doc.name || title}
-                </span>
+                <FileText size={38} className="text-slate-500 group-hover:scale-110 transition-transform mb-1" />
+                <span className="text-[11px] font-bold text-slate-700 truncate max-w-[90%]">{doc.name || 'مستند مرفق'}</span>
+                <span className="text-[10px] text-slate-500 font-semibold mt-1">اضغط للتكبير والتحميل</span>
               </div>
             )}
-            <div className="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity gap-1.5 font-bold text-xs">
-              <ZoomIn size={16} /> تكبير وفحص المستند
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 text-white text-xs font-bold">
+              <ZoomIn size={16} /> تكبير ومعاينة
             </div>
           </div>
         ) : (
-          <div className="h-36 rounded-xl flex flex-col items-center justify-center text-center p-3 border border-dashed border-slate-300 bg-white">
-            <AlertCircle size={28} className="text-amber-500/80 mb-1" />
-            <span className="text-xs font-bold text-slate-600">لم يتم إرفاق مستند</span>
-            <span className="text-[10px] text-slate-400 mt-0.5">بانتظار رفع المستند من المستفيد</span>
+          <div className="h-36 rounded-xl border border-dashed border-amber-300 bg-amber-50/50 flex flex-col items-center justify-center text-center p-3">
+            <AlertCircle size={28} className="text-amber-500 mb-1.5" />
+            <span className="text-xs font-bold text-amber-800">لم يتم رفع هذا المستند بعد</span>
+            <span className="text-[10px] text-amber-600 mt-0.5">يمكنك طلب رفعه من المستفيد</span>
           </div>
         )}
 
-        {/* Action button */}
+        {/* Download Button */}
         <button
           type="button"
-          disabled={!hasFile}
           onClick={() => triggerDownload(doc?.dataUrl, doc?.name || defaultName)}
-          className="w-full py-1.5 px-2 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 border border-slate-200 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
+          disabled={!hasFile}
+          className={`w-full py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors ${
+            hasFile
+              ? 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 cursor-pointer shadow-xs'
+              : 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+          }`}
         >
           <Download size={13} className="text-[#1677A8]" />
           {hasFile ? 'فتح وتحميل المستند' : 'لا يوجد ملف'}
@@ -430,152 +459,195 @@ export default function AdminReviewApplicationPage() {
 
         {/* Content */}
         <main className="p-4 md:p-8 space-y-6 max-w-6xl">
-          
-          {/* Top Title Row */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-xl md:text-2xl font-extrabold text-[#123B5D]">
-                تدقيق وفحص طلب الاشتراك #{appId}
-              </h1>
-              <p className="text-xs text-slate-400">
-                تاريخ التقديم: {applicantData.submissionDate} · مقدم الطلب: {applicantData.fullName}
+          {isLoading ? (
+            <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 shadow-sm space-y-3">
+              <div className="w-10 h-10 border-4 border-[#1677A8] border-t-transparent rounded-full animate-spin mx-auto" />
+              <div className="font-bold text-slate-700">جاري جلب بيانات الطلب من قاعدة البيانات...</div>
+              <div className="text-xs text-slate-400">يرجى الانتظار لحظات</div>
+            </div>
+          ) : notFound || !applicantData ? (
+            <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 shadow-sm space-y-4">
+              <AlertCircle size={48} className="text-amber-500 mx-auto" />
+              <h2 className="text-lg font-bold text-slate-800">لم يتم العثور على هذا الطلب في قاعدة البيانات</h2>
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
+                رقم المعرف المطلوب ({appId}) غير موجود أو تم مسحه مع تهيئة قاعدة البيانات.
               </p>
+              <Link href="/mawqif/admin" className="mw-btn mw-btn-primary text-xs py-2 px-6 font-bold inline-flex items-center gap-2">
+                العودة للوحة الإدارة
+              </Link>
             </div>
+          ) : (
+            <>
+              {/* Top Title Row */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h1 className="text-xl md:text-2xl font-extrabold text-[#123B5D]">
+                    {applicantData.isAccountOnly ? 'تفاصيل حساب المستخدم' : `تدقيق وفحص طلب الاشتراك #${appId}`}
+                  </h1>
+                  <p className="text-xs text-slate-400">
+                    تاريخ التقديم: {applicantData.submissionDate} · مقدم الطلب: {applicantData.fullName}
+                  </p>
+                </div>
 
-            <Link
-              href="/mawqif/admin"
-              className="mw-btn mw-btn-outline text-xs py-2 px-4 bg-white font-bold"
-            >
-              <ChevronRight size={16} />
-              العودة لقائمة الطلبات
-            </Link>
-          </div>
-
-          {/* Grid: Applicant & Vehicle Info */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
-            {/* Applicant Card */}
-            <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
-              <div className="flex items-center gap-2 text-[#123B5D] font-bold border-b border-slate-100 pb-3">
-                <User size={18} className="text-[#1677A8]" />
-                <span>البيانات الشخصية للمتقدم</span>
+                <Link
+                  href="/mawqif/admin"
+                  className="mw-btn mw-btn-outline text-xs py-2 px-4 bg-white font-bold"
+                >
+                  <ChevronRight size={16} />
+                  العودة لقائمة الطلبات
+                </Link>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 text-xs md:text-sm">
-                <div>
-                  <span className="text-slate-400 block text-xs">الاسم الثلاثي</span>
-                  <span className="font-bold text-slate-800">{applicantData.fullName}</span>
+              {applicantData.isAccountOnly && (
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-3">
+                  <AlertCircle className="text-amber-600 shrink-0 mt-0.5" size={20} />
+                  <div className="space-y-1">
+                    <h3 className="font-bold text-amber-900 text-sm">المستخدم مسجل ولكن لم يكمل تقديم طلب الاشتراك بعد</h3>
+                    <p className="text-xs text-amber-800 leading-relaxed">
+                      قام هذا المستخدم بالتسجيل بنجاح في المنصة، ولكنه لم يقم بعد بإدخال بيانات مركبته ورفع مستندات الاشتراك عبر صفحة تقديم الطلب (<code className="font-mono bg-amber-100 px-1 py-0.5 rounded">/mawqif/apply</code>). بمجرد إكماله للطلب ستظهر بيانات المركبة والمستندات هنا فوراً.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-slate-400 block text-xs">رقم الهوية الوطنية</span>
-                  <span className="font-bold font-mono text-slate-800" dir="ltr">{applicantData.idNumber}</span>
+              )}
+
+              {/* Grid: Applicant & Vehicle Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                {/* Applicant Card */}
+                <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
+                  <div className="flex items-center gap-2 text-[#123B5D] font-bold border-b border-slate-100 pb-3">
+                    <User size={18} className="text-[#1677A8]" />
+                    <span>البيانات الشخصية للمتقدم</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-xs md:text-sm">
+                    <div>
+                      <span className="text-slate-400 block text-xs">الاسم الثلاثي</span>
+                      <span className="font-bold text-slate-800">{applicantData.fullName}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-xs">رقم الهوية الوطنية</span>
+                      <span className="font-bold font-mono text-slate-800" dir="ltr">{applicantData.idNumber}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-xs">رقم الجوال</span>
+                      <span className="font-bold font-mono text-slate-800" dir="ltr">{applicantData.phone}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-xs">البريد الإلكتروني</span>
+                      <span className="font-semibold text-slate-800">{applicantData.email}</span>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="text-slate-400 block text-xs">المدينة والعنوان</span>
+                      <span className="font-semibold text-slate-800">{applicantData.city} - {applicantData.address}</span>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-slate-400 block text-xs">رقم الجوال</span>
-                  <span className="font-bold font-mono text-slate-800" dir="ltr">{applicantData.phone}</span>
+
+                {/* Vehicle Card */}
+                <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
+                  <div className="flex items-center gap-2 text-[#123B5D] font-bold border-b border-slate-100 pb-3">
+                    <Car size={18} className="text-[#1677A8]" />
+                    <span>بيانات المركبة المطلوبة للترخيص</span>
+                  </div>
+
+                  {applicantData.isAccountOnly ? (
+                    <div className="p-6 text-center text-slate-400 text-xs space-y-2">
+                      <Car size={32} className="mx-auto text-slate-300" />
+                      <div className="font-bold text-slate-600">لم يتم إدخال بيانات مركبة بعد</div>
+                      <div>بانتظار قيام المستخدم بإكمال نموذج طلب الاشتراك</div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3 text-xs md:text-sm">
+                      <div>
+                        <span className="text-slate-400 block text-xs">الشركة والموديل</span>
+                        <span className="font-bold text-slate-800">{applicantData.vehicleMake} {applicantData.vehicleModel}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-xs">سنة الصنع / اللون</span>
+                        <span className="font-semibold text-slate-800">{applicantData.vehicleYear} ({applicantData.vehicleColor})</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-xs">رقم اللوحة</span>
+                        <span className="font-bold text-[#123B5D] bg-slate-100 px-2 py-0.5 rounded border border-slate-200 inline-block font-mono">
+                          {applicantData.plateNumber}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-xs">رقم الاستمارة</span>
+                        <span className="font-bold font-mono text-slate-800" dir="ltr">{applicantData.vehicleLicenseNumber}</span>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-slate-400 block text-xs">نوع الاشتراك</span>
+                        <span className="font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full inline-block">
+                          اشتراك مجاني سنوي (365 يوماً)
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <span className="text-slate-400 block text-xs">البريد الإلكتروني</span>
-                  <span className="font-semibold text-slate-800">{applicantData.email}</span>
-                </div>
-                <div className="col-span-2">
-                  <span className="text-slate-400 block text-xs">المدينة والعنوان</span>
-                  <span className="font-semibold text-slate-800">{applicantData.city} - {applicantData.address}</span>
-                </div>
+
               </div>
-            </div>
 
-            {/* Vehicle Card */}
-            <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
-              <div className="flex items-center gap-2 text-[#123B5D] font-bold border-b border-slate-100 pb-3">
-                <Car size={18} className="text-[#1677A8]" />
-                <span>بيانات المركبة المطلوبة للترخيص</span>
-              </div>
+              {/* Section: Document Inspection with REAL Uploaded Files & Download Capability */}
+              {!applicantData.isAccountOnly && (
+                <>
+                  <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-3 flex-wrap gap-2">
+                      <div className="flex items-center gap-2">
+                        <FileText size={18} className="text-[#1677A8]" />
+                        <h3 className="font-bold text-base text-[#123B5D]">تدقيق وفحص المستندات المرفوعة من قبل المتقدم</h3>
+                      </div>
+                      <span className="text-xs bg-emerald-50 text-emerald-700 font-bold px-3 py-1 rounded-full border border-emerald-200 flex items-center gap-1">
+                        المستندات الحقيقية المرفوعة متاحة للمعاينة والتحميل
+                      </span>
+                    </div>
 
-              <div className="grid grid-cols-2 gap-3 text-xs md:text-sm">
-                <div>
-                  <span className="text-slate-400 block text-xs">الشركة والموديل</span>
-                  <span className="font-bold text-slate-800">{applicantData.vehicleMake} {applicantData.vehicleModel}</span>
-                </div>
-                <div>
-                  <span className="text-slate-400 block text-xs">سنة الصنع / اللون</span>
-                  <span className="font-semibold text-slate-800">{applicantData.vehicleYear} ({applicantData.vehicleColor})</span>
-                </div>
-                <div>
-                  <span className="text-slate-400 block text-xs">رقم اللوحة</span>
-                  <span className="font-bold text-[#123B5D] bg-slate-100 px-2 py-0.5 rounded border border-slate-200 inline-block font-mono">
-                    {applicantData.plateNumber}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-slate-400 block text-xs">رقم الاستمارة</span>
-                  <span className="font-bold font-mono text-slate-800" dir="ltr">{applicantData.vehicleLicenseNumber}</span>
-                </div>
-                <div className="col-span-2">
-                  <span className="text-slate-400 block text-xs">نوع الاشتراك</span>
-                  <span className="font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full inline-block">
-                    اشتراك مجاني سنوي (365 يوماً)
-                  </span>
-                </div>
-              </div>
-            </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+                      {renderDocCard('1. الهوية الوطنية / الإقامة', true, idDoc, 'id', `national-id-${appId}.jpg`)}
+                      {renderDocCard('2. رخصة القيادة السارية', true, drivingDoc, 'driving', `driving-license-${appId}.jpg`)}
+                      {renderDocCard('3. رخصة سير المركبة (الاستمارة)', true, vehicleDoc, 'vehicle', `vehicle-license-${appId}.jpg`)}
+                      {renderDocCard('4. صورة المركبة', false, carPhotoDoc, 'carPhoto', `car-photo-${appId}.jpg`)}
+                    </div>
+                  </div>
 
-          </div>
+                  {/* Section: Final Decision Panel */}
+                  <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-lg space-y-4">
+                    <h3 className="font-bold text-base text-[#123B5D]">القرار النهائي للمشرف والدعم الفني</h3>
+                    <p className="text-xs text-slate-500">
+                      اتخاذ القرار هنا سيحدث حالة الطلب مباشرة في حساب المستفيد ويرسل إشعاراً فورياً له بالنتيجة.
+                    </p>
 
-          {/* Section: Document Inspection with REAL Uploaded Files & Download Capability */}
-          <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3 flex-wrap gap-2">
-              <div className="flex items-center gap-2">
-                <FileText size={18} className="text-[#1677A8]" />
-                <h3 className="font-bold text-base text-[#123B5D]">تدقيق وفحص المستندات المرفوعة من قبل المتقدم</h3>
-              </div>
-              <span className="text-xs bg-blue-50 text-[#1677A8] font-bold px-3 py-1 rounded-full border border-blue-100">
-                {docs ? 'المستندات الحقيقية المرفوعة متاحة للمعاينة والتحميل' : 'مستندات نموذج تجريبي'}
-              </span>
-            </div>
+                    <div className="flex flex-wrap items-center gap-3 pt-2">
+                      <button
+                        onClick={handleApprove}
+                        className="mw-btn mw-btn-success text-xs md:text-sm font-bold flex-1 min-w-[160px] py-3.5 shadow-md shadow-emerald-950/10"
+                      >
+                        <CheckCircle2 size={18} />
+                        الموافقة على الطلب وتفعيل بطاقة الاشتراك
+                      </button>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
-              {renderDocCard('1. الهوية الوطنية / الإقامة', true, idDoc, 'id', `national-id-${appId}.jpg`)}
-              {renderDocCard('2. رخصة القيادة السارية', true, drivingDoc, 'driving', `driving-license-${appId}.jpg`)}
-              {renderDocCard('3. رخصة سير المركبة (الاستمارة)', true, vehicleDoc, 'vehicle', `vehicle-license-${appId}.jpg`)}
-              {renderDocCard('4. صورة المركبة', false, carPhotoDoc, 'carPhoto', `car-photo-${appId}.jpg`)}
-            </div>
-          </div>
+                      <button
+                        onClick={() => setModModalOpen(true)}
+                        className="mw-btn mw-btn-warning text-xs md:text-sm font-bold flex-1 min-w-[160px] py-3.5 shadow-md shadow-amber-950/10 text-white"
+                      >
+                        <AlertCircle size={18} />
+                        طلب تعديل مستندات
+                      </button>
 
-          {/* Section: Final Decision Panel */}
-          <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-lg space-y-4">
-            <h3 className="font-bold text-base text-[#123B5D]">القرار النهائي للمشرف والدعم الفني</h3>
-            <p className="text-xs text-slate-500">
-              اتخاذ القرار هنا سيحدث حالة الطلب مباشرة في حساب المستفيد ويرسل إشعاراً فورياً له بالنتيجة.
-            </p>
-
-            <div className="flex flex-wrap items-center gap-3 pt-2">
-              <button
-                onClick={handleApprove}
-                className="mw-btn mw-btn-success text-xs md:text-sm font-bold flex-1 min-w-[160px] py-3.5 shadow-md shadow-emerald-950/10"
-              >
-                <CheckCircle2 size={18} />
-                الموافقة على الطلب وتفعيل بطاقة الاشتراك
-              </button>
-
-              <button
-                onClick={() => setModModalOpen(true)}
-                className="mw-btn mw-btn-warning text-xs md:text-sm font-bold flex-1 min-w-[160px] py-3.5 shadow-md shadow-amber-950/10 text-white"
-              >
-                <AlertCircle size={18} />
-                طلب تعديل مستندات
-              </button>
-
-              <button
-                onClick={() => setRejectionModalOpen(true)}
-                className="mw-btn mw-btn-danger text-xs md:text-sm font-bold flex-1 min-w-[160px] py-3.5 shadow-md shadow-red-950/10 text-white"
-              >
-                <XCircle size={18} />
-                رفض الطلب
-              </button>
-            </div>
-          </div>
-
+                      <button
+                        onClick={() => setRejectionModalOpen(true)}
+                        className="mw-btn mw-btn-danger text-xs md:text-sm font-bold flex-1 min-w-[160px] py-3.5 shadow-md shadow-red-950/10 text-white"
+                      >
+                        <XCircle size={18} />
+                        رفض الطلب
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </>
+          )}
         </main>
       </div>
 

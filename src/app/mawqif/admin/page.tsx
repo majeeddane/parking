@@ -36,99 +36,25 @@ export interface AdminAppRecord {
   status: StatusType;
 }
 
-export const ADMIN_APPLICATIONS: AdminAppRecord[] = [
-  {
-    id: 'PARK-2026-10482',
-    applicantName: 'محمد أحمد العتيبي',
-    idNumber: '1082345678',
-    phone: '0501234567',
-    vehicle: 'Toyota Camry 2024',
-    plate: 'أ ب ج 1234',
-    submissionDate: '28-08-2026',
-    status: 'pending',
-  },
-  {
-    id: 'PARK-2026-09311',
-    applicantName: 'خالد سالم الشمري',
-    idNumber: '1098765432',
-    phone: '0555554321',
-    vehicle: 'Hyundai Sonata 2023',
-    plate: 'س ص ع 5678',
-    submissionDate: '15-08-2026',
-    status: 'approved',
-  },
-  {
-    id: 'PARK-2026-08119',
-    applicantName: 'أحمد محمود الغامدي',
-    idNumber: '1045678901',
-    phone: '0543219876',
-    vehicle: 'Toyota Corolla 2022',
-    plate: 'د هـ و 9012',
-    submissionDate: '20-08-2026',
-    status: 'rejected',
-  },
-  {
-    id: 'PARK-2026-07442',
-    applicantName: 'سارة خالد الدوسري',
-    idNumber: '1023456789',
-    phone: '0567890123',
-    vehicle: 'Kia K5 2024',
-    plate: 'ر ز ط 4321',
-    submissionDate: '25-08-2026',
-    status: 'needs_edit',
-  },
-  {
-    id: 'PARK-2026-06890',
-    applicantName: 'عبدالله إبراهيم القحطاني',
-    idNumber: '1076543210',
-    phone: '0509876543',
-    vehicle: 'Ford Taurus 2023',
-    plate: 'ن هـ ي 7788',
-    submissionDate: '26-08-2026',
-    status: 'pending',
-  },
-  {
-    id: 'PARK-2026-05120',
-    applicantName: 'ريم سلطان الحربي',
-    idNumber: '1034567890',
-    phone: '0533344556',
-    vehicle: 'Mazda 6 2024',
-    plate: 'ح ط ي 1122',
-    submissionDate: '10-08-2026',
-    status: 'completed',
-  },
-];
+export const ADMIN_APPLICATIONS: AdminAppRecord[] = [];
 
 export default function AdminDashboardPage() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [records, setRecords] = useState<AdminAppRecord[]>(ADMIN_APPLICATIONS);
+  const [records, setRecords] = useState<AdminAppRecord[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const loadData = async () => {
     setIsRefreshing(true);
     try {
-      // 1. Fetch live from server DB
+      // 1. Fetch live strictly from Supabase Server DB
       const res = await fetch('/api/mawqif/db', { cache: 'no-store' });
       const json = await res.json();
-      
-      let serverDb = json.data || {};
-      let localDb: any = {};
-      if (typeof window !== 'undefined') {
-        const localDbStr = localStorage.getItem('mawqif_accounts_db');
-        if (localDbStr) {
-          try {
-            localDb = JSON.parse(localDbStr);
-          } catch {}
-        }
-      }
-
-      // Cloud database takes precedence
-      const db = { ...localDb, ...serverDb };
+      const serverDb = json.data || {};
 
       const realApps: AdminAppRecord[] = [];
-      Object.values(db).forEach((acc: any) => {
+      Object.values(serverDb).forEach((acc: any) => {
         if (acc?.application) {
           realApps.push({
             id: acc.application.id,
@@ -146,7 +72,7 @@ export default function AdminDashboardPage() {
             applicantName: acc.user.fullName || acc.user.firstName || 'مستخدم مسجل',
             idNumber: acc.user.idNumber || '—',
             phone: acc.user.phone || '—',
-            vehicle: 'حساب مسجل (بانتظار إكمال الطلب)',
+            vehicle: 'حساب مسجل (بانتظار رفع المستندات)',
             plate: '—',
             submissionDate: 'مسجل جديد',
             status: 'pending',
@@ -154,9 +80,7 @@ export default function AdminDashboardPage() {
         }
       });
 
-      const existingIds = new Set(realApps.map((a) => a.id));
-      const combined = [...realApps, ...ADMIN_APPLICATIONS.filter((a) => !existingIds.has(a.id))];
-      setRecords(combined);
+      setRecords(realApps);
     } catch (e) {
       console.error(e);
     } finally {

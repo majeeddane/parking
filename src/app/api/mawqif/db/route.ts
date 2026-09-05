@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+export const maxDuration = 60;
 
 // Polyfill WebSocket in Node.js environment so @supabase/supabase-js doesn't throw
 if (typeof WebSocket === 'undefined') {
@@ -171,16 +172,13 @@ async function safeUpsertApplication(supabase: any, a: any, userId: string) {
     }, { onConflict: 'id' });
   }
 
-  // Upload any base64 document attachments to Supabase Storage
-  let docId = a.documents?.idDocument || null;
-  let docDriving = a.documents?.drivingLicense || null;
-  let docVehicle = a.documents?.vehicleLicense || null;
-  let docCar = a.documents?.carPhoto || null;
-
-  if (docId) docId = await uploadDocToStorage(supabase, a.id, 'id_document', docId);
-  if (docDriving) docDriving = await uploadDocToStorage(supabase, a.id, 'driving_license', docDriving);
-  if (docVehicle) docVehicle = await uploadDocToStorage(supabase, a.id, 'vehicle_license', docVehicle);
-  if (docCar) docCar = await uploadDocToStorage(supabase, a.id, 'car_photo', docCar);
+  // Upload any base64 document attachments to Supabase Storage in parallel
+  const [docId, docDriving, docVehicle, docCar] = await Promise.all([
+    a.documents?.idDocument ? uploadDocToStorage(supabase, a.id, 'id_document', a.documents.idDocument) : null,
+    a.documents?.drivingLicense ? uploadDocToStorage(supabase, a.id, 'driving_license', a.documents.drivingLicense) : null,
+    a.documents?.vehicleLicense ? uploadDocToStorage(supabase, a.id, 'vehicle_license', a.documents.vehicleLicense) : null,
+    a.documents?.carPhoto ? uploadDocToStorage(supabase, a.id, 'car_photo', a.documents.carPhoto) : null,
+  ]);
 
   const { error } = await supabase
     .from('mawqif_applications')

@@ -29,7 +29,8 @@ export default function AdminAllApplicationsPage() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [records, setRecords] = useState<ExtendedAppRecord[]>(ADMIN_APPLICATIONS);
+  const [records, setRecords] = useState<ExtendedAppRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string>('');
   const [cloudConnected, setCloudConnected] = useState(true);
@@ -94,21 +95,15 @@ export default function AdminAllApplicationsPage() {
         }
       });
 
-      // Deduplicate against static demo records
-      const existingIds = new Set(realApps.map((a) => a.id));
-      const demoRecords: ExtendedAppRecord[] = ADMIN_APPLICATIONS
-        .filter((a) => !existingIds.has(a.id))
-        .map((a) => ({ ...a, isLive: false }));
-
-      // Real live submitted applications placed on top!
-      const combined = [...realApps, ...demoRecords];
-      setRecords(combined);
+      // Pure live applications only - no hardcoded mock applicants
+      setRecords(realApps);
       setLastUpdated(new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
     } catch (e) {
       console.error('Failed to load applications in admin:', e);
       setCloudConnected(false);
     } finally {
       setIsRefreshing(false);
+      setIsLoading(false);
     }
   }, []);
 
@@ -313,12 +308,25 @@ export default function AdminAllApplicationsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.length === 0 ? (
+                  {isLoading ? (
                     <tr>
                       <td colSpan={8} className="text-center py-12 text-slate-400">
-                        <FileCheck size={36} className="mx-auto mb-2 opacity-40" />
-                        <div className="text-sm font-bold text-slate-600">لا توجد طلبات مطابقة للبحث أو الفلتر</div>
-                        <div className="text-xs text-slate-400 mt-1">تأكد من كتابة الكلمات بشكل صحيح أو قم بإلغاء الفلتر</div>
+                        <RefreshCw size={32} className="mx-auto mb-2 animate-spin text-[#1677A8]" />
+                        <div className="text-sm font-bold text-slate-600">جاري تحميل الطلبات من السحابة...</div>
+                      </td>
+                    </tr>
+                  ) : filtered.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="text-center py-12 text-slate-400">
+                        <FileCheck size={36} className="mx-auto mb-2 opacity-40 text-slate-400" />
+                        <div className="text-sm font-bold text-slate-700">
+                          {records.length === 0 ? 'لا توجد طلبات مسجلة في قاعدة البيانات حالياً' : 'لا توجد طلبات مطابقة للبحث أو الفلتر'}
+                        </div>
+                        <div className="text-xs text-slate-400 mt-1">
+                          {records.length === 0
+                            ? 'بمجرد تسجيل أي مستخدم أو إرسال طلبه من أي جهاز، ستظهر بياناته هنا فوراً.'
+                            : 'تأكد من كتابة الكلمات بشكل صحيح أو قم بإلغاء الفلتر.'}
+                        </div>
                       </td>
                     </tr>
                   ) : (
