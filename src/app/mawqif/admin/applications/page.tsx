@@ -63,6 +63,7 @@ export default function AdminAllApplicationsPage() {
         if (acc?.application) {
           const a = acc.application;
           const u = acc.user || {};
+          const hasUploadedDocs = !!(a.documents?.idDocument?.dataUrl || a.documents?.drivingLicense?.dataUrl || a.documents?.vehicleLicense?.dataUrl);
           realApps.push({
             id: a.id,
             applicantName: u.fullName || `${u.firstName || ''} ${u.familyName || ''}`.trim() || 'مستفيد جديد',
@@ -73,6 +74,7 @@ export default function AdminAllApplicationsPage() {
             submissionDate: a.submissionDate || 'اليوم',
             status: a.status || 'pending',
             isLive: true,
+            hasDocs: hasUploadedDocs,
           });
         } else if (acc?.user && acc.user.id) {
           // Account registered, awaiting vehicle application submission
@@ -87,6 +89,7 @@ export default function AdminAllApplicationsPage() {
             submissionDate: 'مسجل جديد',
             status: 'pending',
             isLive: true,
+            hasDocs: false,
           });
         }
       });
@@ -353,7 +356,18 @@ export default function AdminAllApplicationsPage() {
                         </td>
                         <td className="text-xs text-slate-500 font-mono">{app.submissionDate}</td>
                         <td>
-                          <StatusBadge status={app.status} size="sm" />
+                          <div className="flex flex-col gap-1 items-start">
+                            <StatusBadge status={app.status} size="sm" />
+                            {app.isLive && (
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
+                                app.hasDocs
+                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                  : 'bg-amber-50 text-amber-700 border border-amber-200'
+                              }`}>
+                                {app.hasDocs ? '✓ مستندات مرفوعة' : '⏳ بانتظار رفع المستندات'}
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td>
                           <Link

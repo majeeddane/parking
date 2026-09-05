@@ -234,9 +234,28 @@ export default function AdminReviewApplicationPage() {
   const vehicleDoc = docs.vehicleLicense;
   const carPhotoDoc = docs.carPhoto;
 
+  const isImageDoc = (doc?: any) => {
+    if (!doc?.dataUrl) return false;
+    const url = String(doc.dataUrl);
+    if (doc.type?.startsWith('image/')) return true;
+    if (url.startsWith('data:image')) return true;
+    if (url.startsWith('http') && !url.includes('.pdf') && doc.type !== 'application/pdf' && !doc.name?.endsWith('.pdf')) return true;
+    return /\.(jpg|jpeg|png|webp|gif|svg)$/i.test(doc.name || url);
+  };
+
+  const isPdfDoc = (doc?: any) => {
+    if (!doc?.dataUrl) return false;
+    const url = String(doc.dataUrl);
+    return doc.type === 'application/pdf' || url.startsWith('data:application/pdf') || url.includes('.pdf') || doc.name?.endsWith('.pdf');
+  };
+
   const triggerDownload = (dataUrl: string, fileName: string) => {
     if (!dataUrl) {
-      alert('لم يتم العثور على ملف قابل للتحميل لهذا المستند.');
+      alert('لم يتم العثور على ملف لهذا المستند حتى الآن.');
+      return;
+    }
+    if (dataUrl.startsWith('http')) {
+      window.open(dataUrl, '_blank');
       return;
     }
     const a = document.createElement('a');
@@ -245,6 +264,120 @@ export default function AdminReviewApplicationPage() {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+  };
+
+  const renderDocCard = (
+    title: string,
+    required: boolean,
+    doc: any,
+    docKey: string,
+    defaultName: string
+  ) => {
+    const hasFile = !!doc?.dataUrl;
+    const isImg = isImageDoc(doc);
+    const isPdf = isPdfDoc(doc);
+
+    return (
+      <div className="border border-slate-200 rounded-2xl p-4 space-y-3 bg-slate-50/60 hover:bg-slate-50 transition-colors flex flex-col justify-between">
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-800">{title}</span>
+            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+              required ? 'bg-red-100 text-red-700' : 'bg-slate-200 text-slate-700'
+            }`}>
+              {required ? 'إلزامي' : 'اختياري'}
+            </span>
+          </div>
+          {doc?.name && (
+            <div className="text-[11px] text-slate-500 truncate font-mono" title={doc.name}>
+              📄 {doc.name}
+            </div>
+          )}
+        </div>
+
+        {/* Preview Box */}
+        {hasFile ? (
+          <div
+            onClick={() => setZoomModalImage({
+              src: doc.dataUrl,
+              title: title,
+              name: doc.name || defaultName,
+              isPdf
+            })}
+            className={`h-36 rounded-xl flex flex-col items-center justify-center cursor-pointer relative overflow-hidden group border shadow-inner ${
+              isPdf ? 'bg-red-50/80 border-red-200' : 'bg-slate-100 border-slate-300'
+            }`}
+          >
+            {isImg ? (
+              <img
+                src={doc.dataUrl}
+                alt={title}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+              />
+            ) : isPdf ? (
+              <div className="flex flex-col items-center justify-center p-2 text-center">
+                <FileText size={38} className="text-red-600 group-hover:scale-110 transition-transform mb-1" />
+                <span className="text-[11px] font-bold text-slate-700 truncate max-w-[90%]">{doc.name || 'ملف PDF'}</span>
+                <span className="text-[10px] text-red-600 font-semibold mt-0.5">انقر لمعاينة ملف PDF</span>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center p-2 text-center">
+                <FileText size={32} className="text-[#1677A8] group-hover:scale-110 transition-transform" />
+                <span className="text-[10px] text-slate-600 font-semibold mt-1">
+                  {doc.name || title}
+                </span>
+              </div>
+            )}
+            <div className="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity gap-1.5 font-bold text-xs">
+              <ZoomIn size={16} /> تكبير وفحص المستند
+            </div>
+          </div>
+        ) : (
+          <div className="h-36 rounded-xl flex flex-col items-center justify-center text-center p-3 border border-dashed border-slate-300 bg-white">
+            <AlertCircle size={28} className="text-amber-500/80 mb-1" />
+            <span className="text-xs font-bold text-slate-600">لم يتم إرفاق مستند</span>
+            <span className="text-[10px] text-slate-400 mt-0.5">بانتظار رفع المستند من المستفيد</span>
+          </div>
+        )}
+
+        {/* Action button */}
+        <button
+          type="button"
+          disabled={!hasFile}
+          onClick={() => triggerDownload(doc?.dataUrl, doc?.name || defaultName)}
+          className="w-full py-1.5 px-2 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 border border-slate-200 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
+        >
+          <Download size={13} className="text-[#1677A8]" />
+          {hasFile ? 'فتح وتحميل المستند' : 'لا يوجد ملف'}
+        </button>
+
+        {/* Status toggles */}
+        <div className="flex gap-1.5 pt-1">
+          <button
+            onClick={() => {
+              setDocStatuses({ ...docStatuses, [docKey]: 'approved' });
+              showToast(`تم قبول وتوثيق ${title}`);
+            }}
+            className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1 ${
+              docStatuses[docKey] === 'approved' ? 'bg-emerald-600 text-white' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+            }`}
+          >
+            <Check size={13} /> قبول
+          </button>
+          <button
+            onClick={() => {
+              setDocStatuses({ ...docStatuses, [docKey]: 'rejected' });
+              showToast(`تم رفض ${title}`);
+            }}
+            className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1 ${
+              docStatuses[docKey] === 'rejected' ? 'bg-red-600 text-white' : 'bg-red-50 text-red-700 hover:bg-red-100'
+            }`}
+          >
+            <X size={13} /> رفض
+          </button>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -402,311 +535,10 @@ export default function AdminReviewApplicationPage() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
-              
-              {/* Doc 1: National ID */}
-              <div className="border border-slate-200 rounded-2xl p-4 space-y-3 bg-slate-50/60 hover:bg-slate-50 transition-colors flex flex-col justify-between">
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-800">1. الهوية الوطنية</span>
-                    <span className="text-[10px] bg-red-100 text-red-700 font-bold px-1.5 py-0.5 rounded">إلزامي</span>
-                  </div>
-                  {idDoc?.name && (
-                    <div className="text-[11px] text-slate-500 truncate font-mono" title={idDoc.name}>
-                      📄 {idDoc.name}
-                    </div>
-                  )}
-                </div>
-
-                {/* Preview Box */}
-                <div
-                  onClick={() => setZoomModalImage({
-                    src: idDoc?.dataUrl || '/mawqif/hero-parking.jpg',
-                    title: 'الهوية الوطنية / الإقامة',
-                    name: idDoc?.name || 'national-id.jpg'
-                  })}
-                  className="h-32 bg-slate-200 rounded-xl flex flex-col items-center justify-center cursor-pointer relative overflow-hidden group border border-slate-300 shadow-inner"
-                >
-                  {idDoc?.dataUrl && idDoc.dataUrl.startsWith('data:image') ? (
-                    <img src={idDoc.dataUrl} alt="الهوية" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                  ) : (
-                    <div className="flex flex-col items-center justify-center p-2 text-center">
-                      <FileText size={32} className="text-[#1677A8] group-hover:scale-110 transition-transform" />
-                      <span className="text-[10px] text-slate-600 font-semibold mt-1">
-                        {idDoc?.name || 'مستند الهوية الوطنية'}
-                      </span>
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity gap-1.5 font-bold text-xs">
-                    <ZoomIn size={16} /> تكبير وفحص
-                  </div>
-                </div>
-
-                {/* Download Button for ID */}
-                <button
-                  type="button"
-                  onClick={() => triggerDownload(idDoc?.dataUrl || '/mawqif/hero-parking.jpg', idDoc?.name || `id-${appId}.jpg`)}
-                  className="w-full py-1.5 px-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
-                  title="حفظ المستند في جهازك"
-                >
-                  <Download size={13} className="text-[#1677A8]" />
-                  حفظ المستند بالجهاز
-                </button>
-
-                {/* Status toggles */}
-                <div className="flex gap-1.5 pt-1">
-                  <button
-                    onClick={() => {
-                      setDocStatuses({ ...docStatuses, id: 'approved' });
-                      showToast('تم قبول وتوثيق مستند الهوية');
-                    }}
-                    className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1 ${
-                      docStatuses.id === 'approved' ? 'bg-emerald-600 text-white' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                    }`}
-                  >
-                    <Check size={13} /> قبول
-                  </button>
-                  <button
-                    onClick={() => {
-                      setDocStatuses({ ...docStatuses, id: 'rejected' });
-                      showToast('تم رفض مستند الهوية');
-                    }}
-                    className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1 ${
-                      docStatuses.id === 'rejected' ? 'bg-red-600 text-white' : 'bg-red-50 text-red-700 hover:bg-red-100'
-                    }`}
-                  >
-                    <X size={13} /> رفض
-                  </button>
-                </div>
-              </div>
-
-              {/* Doc 2: Driving License */}
-              <div className="border border-slate-200 rounded-2xl p-4 space-y-3 bg-slate-50/60 hover:bg-slate-50 transition-colors flex flex-col justify-between">
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-800">2. رخصة القيادة</span>
-                    <span className="text-[10px] bg-red-100 text-red-700 font-bold px-1.5 py-0.5 rounded">إلزامي</span>
-                  </div>
-                  {drivingDoc?.name && (
-                    <div className="text-[11px] text-slate-500 truncate font-mono" title={drivingDoc.name}>
-                      📄 {drivingDoc.name}
-                    </div>
-                  )}
-                </div>
-
-                {/* Preview Box */}
-                <div
-                  onClick={() => setZoomModalImage({
-                    src: drivingDoc?.dataUrl || '/mawqif/hero-parking.jpg',
-                    title: 'رخصة القيادة السارية',
-                    name: drivingDoc?.name || 'driving-license.jpg'
-                  })}
-                  className="h-32 bg-slate-200 rounded-xl flex flex-col items-center justify-center cursor-pointer relative overflow-hidden group border border-slate-300 shadow-inner"
-                >
-                  {drivingDoc?.dataUrl && drivingDoc.dataUrl.startsWith('data:image') ? (
-                    <img src={drivingDoc.dataUrl} alt="رخصة القيادة" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                  ) : (
-                    <div className="flex flex-col items-center justify-center p-2 text-center">
-                      <FileText size={32} className="text-[#1677A8] group-hover:scale-110 transition-transform" />
-                      <span className="text-[10px] text-slate-600 font-semibold mt-1">
-                        {drivingDoc?.name || 'مستند رخصة القيادة'}
-                      </span>
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity gap-1.5 font-bold text-xs">
-                    <ZoomIn size={16} /> تكبير وفحص
-                  </div>
-                </div>
-
-                {/* Download Button for Driving License */}
-                <button
-                  type="button"
-                  onClick={() => triggerDownload(drivingDoc?.dataUrl || '/mawqif/hero-parking.jpg', drivingDoc?.name || `driving-license-${appId}.jpg`)}
-                  className="w-full py-1.5 px-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
-                  title="حفظ المستند في جهازك"
-                >
-                  <Download size={13} className="text-[#1677A8]" />
-                  حفظ المستند بالجهاز
-                </button>
-
-                {/* Status toggles */}
-                <div className="flex gap-1.5 pt-1">
-                  <button
-                    onClick={() => {
-                      setDocStatuses({ ...docStatuses, driving: 'approved' });
-                      showToast('تم قبول وتوثيق رخصة القيادة');
-                    }}
-                    className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1 ${
-                      docStatuses.driving === 'approved' ? 'bg-emerald-600 text-white' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                    }`}
-                  >
-                    <Check size={13} /> قبول
-                  </button>
-                  <button
-                    onClick={() => {
-                      setDocStatuses({ ...docStatuses, driving: 'rejected' });
-                      showToast('تم رفض رخصة القيادة');
-                    }}
-                    className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1 ${
-                      docStatuses.driving === 'rejected' ? 'bg-red-600 text-white' : 'bg-red-50 text-red-700 hover:bg-red-100'
-                    }`}
-                  >
-                    <X size={13} /> رفض
-                  </button>
-                </div>
-              </div>
-
-              {/* Doc 3: Vehicle Registration */}
-              <div className="border border-slate-200 rounded-2xl p-4 space-y-3 bg-slate-50/60 hover:bg-slate-50 transition-colors flex flex-col justify-between">
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-800">3. رخصة السير (الاستمارة)</span>
-                    <span className="text-[10px] bg-red-100 text-red-700 font-bold px-1.5 py-0.5 rounded">إلزامي</span>
-                  </div>
-                  {vehicleDoc?.name && (
-                    <div className="text-[11px] text-slate-500 truncate font-mono" title={vehicleDoc.name}>
-                      📄 {vehicleDoc.name}
-                    </div>
-                  )}
-                </div>
-
-                {/* Preview Box */}
-                <div
-                  onClick={() => setZoomModalImage({
-                    src: vehicleDoc?.dataUrl || '/mawqif/parking-gate.jpg',
-                    title: 'رخصة سير المركبة (الاستمارة)',
-                    name: vehicleDoc?.name || 'vehicle-license.jpg'
-                  })}
-                  className="h-32 bg-slate-200 rounded-xl flex flex-col items-center justify-center cursor-pointer relative overflow-hidden group border border-slate-300 shadow-inner"
-                >
-                  {vehicleDoc?.dataUrl && vehicleDoc.dataUrl.startsWith('data:image') ? (
-                    <img src={vehicleDoc.dataUrl} alt="الاستمارة" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                  ) : (
-                    <div className="flex flex-col items-center justify-center p-2 text-center">
-                      <FileText size={32} className="text-[#1677A8] group-hover:scale-110 transition-transform" />
-                      <span className="text-[10px] text-slate-600 font-semibold mt-1">
-                        {vehicleDoc?.name || 'مستند الاستمارة'}
-                      </span>
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity gap-1.5 font-bold text-xs">
-                    <ZoomIn size={16} /> تكبير وفحص
-                  </div>
-                </div>
-
-                {/* Download Button for Vehicle License */}
-                <button
-                  type="button"
-                  onClick={() => triggerDownload(vehicleDoc?.dataUrl || '/mawqif/parking-gate.jpg', vehicleDoc?.name || `vehicle-license-${appId}.jpg`)}
-                  className="w-full py-1.5 px-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
-                  title="حفظ المستند في جهازك"
-                >
-                  <Download size={13} className="text-[#1677A8]" />
-                  حفظ المستند بالجهاز
-                </button>
-
-                {/* Status toggles */}
-                <div className="flex gap-1.5 pt-1">
-                  <button
-                    onClick={() => {
-                      setDocStatuses({ ...docStatuses, vehicle: 'approved' });
-                      showToast('تم قبول وتوثيق رخصة السير');
-                    }}
-                    className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1 ${
-                      docStatuses.vehicle === 'approved' ? 'bg-emerald-600 text-white' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                    }`}
-                  >
-                    <Check size={13} /> قبول
-                  </button>
-                  <button
-                    onClick={() => {
-                      setDocStatuses({ ...docStatuses, vehicle: 'rejected' });
-                      showToast('تم رفض رخصة السير');
-                    }}
-                    className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1 ${
-                      docStatuses.vehicle === 'rejected' ? 'bg-red-600 text-white' : 'bg-red-50 text-red-700 hover:bg-red-100'
-                    }`}
-                  >
-                    <X size={13} /> رفض
-                  </button>
-                </div>
-              </div>
-
-              {/* Doc 4: Vehicle Photo */}
-              <div className="border border-slate-200 rounded-2xl p-4 space-y-3 bg-slate-50/60 hover:bg-slate-50 transition-colors flex flex-col justify-between">
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-800">4. صورة المركبة</span>
-                    <span className="text-[10px] bg-slate-200 text-slate-700 font-bold px-1.5 py-0.5 rounded">اختياري</span>
-                  </div>
-                  {carPhotoDoc?.name && (
-                    <div className="text-[11px] text-slate-500 truncate font-mono" title={carPhotoDoc.name}>
-                      📄 {carPhotoDoc.name}
-                    </div>
-                  )}
-                </div>
-
-                {/* Preview Box */}
-                <div
-                  onClick={() => setZoomModalImage({
-                    src: carPhotoDoc?.dataUrl || '/mawqif/hero-parking.jpg',
-                    title: 'صورة المركبة',
-                    name: carPhotoDoc?.name || 'car-photo.jpg'
-                  })}
-                  className="h-32 bg-slate-200 rounded-xl flex flex-col items-center justify-center cursor-pointer relative overflow-hidden group border border-slate-300 shadow-inner"
-                >
-                  {carPhotoDoc?.dataUrl && carPhotoDoc.dataUrl.startsWith('data:image') ? (
-                    <img src={carPhotoDoc.dataUrl} alt="المركبة" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                  ) : (
-                    <div className="flex flex-col items-center justify-center p-2 text-center">
-                      <FileText size={32} className="text-[#1677A8] group-hover:scale-110 transition-transform" />
-                      <span className="text-[10px] text-slate-600 font-semibold mt-1">
-                        {carPhotoDoc?.name || 'صورة المركبة'}
-                      </span>
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity gap-1.5 font-bold text-xs">
-                    <ZoomIn size={16} /> تكبير وفحص
-                  </div>
-                </div>
-
-                {/* Download Button for Car Photo */}
-                <button
-                  type="button"
-                  onClick={() => triggerDownload(carPhotoDoc?.dataUrl || '/mawqif/hero-parking.jpg', carPhotoDoc?.name || `car-photo-${appId}.jpg`)}
-                  className="w-full py-1.5 px-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
-                  title="حفظ المستند في جهازك"
-                >
-                  <Download size={13} className="text-[#1677A8]" />
-                  حفظ المستند بالجهاز
-                </button>
-
-                {/* Status toggles */}
-                <div className="flex gap-1.5 pt-1">
-                  <button
-                    onClick={() => {
-                      setDocStatuses({ ...docStatuses, carPhoto: 'approved' });
-                      showToast('تم قبول صورة المركبة');
-                    }}
-                    className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1 ${
-                      docStatuses.carPhoto === 'approved' ? 'bg-emerald-600 text-white' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                    }`}
-                  >
-                    <Check size={13} /> قبول
-                  </button>
-                  <button
-                    onClick={() => {
-                      setDocStatuses({ ...docStatuses, carPhoto: 'rejected' });
-                      showToast('تم رفض صورة المركبة');
-                    }}
-                    className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1 ${
-                      docStatuses.carPhoto === 'rejected' ? 'bg-red-600 text-white' : 'bg-red-50 text-red-700 hover:bg-red-100'
-                    }`}
-                  >
-                    <X size={13} /> رفض
-                  </button>
-                </div>
-              </div>
-
+              {renderDocCard('1. الهوية الوطنية / الإقامة', true, idDoc, 'id', `national-id-${appId}.jpg`)}
+              {renderDocCard('2. رخصة القيادة السارية', true, drivingDoc, 'driving', `driving-license-${appId}.jpg`)}
+              {renderDocCard('3. رخصة سير المركبة (الاستمارة)', true, vehicleDoc, 'vehicle', `vehicle-license-${appId}.jpg`)}
+              {renderDocCard('4. صورة المركبة', false, carPhotoDoc, 'carPhoto', `car-photo-${appId}.jpg`)}
             </div>
           </div>
 
@@ -822,9 +654,11 @@ export default function AdminReviewApplicationPage() {
               <button onClick={() => setZoomModalImage(null)} className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100">✕</button>
             </div>
 
-            <div className="relative max-h-[65vh] overflow-auto rounded-2xl bg-slate-950 flex items-center justify-center p-2 border border-slate-200">
-              {zoomModalImage.src.startsWith('data:image') || zoomModalImage.src.endsWith('.jpg') || zoomModalImage.src.endsWith('.png') ? (
-                <img src={zoomModalImage.src} alt={zoomModalImage.title} className="max-h-[60vh] w-auto object-contain rounded-lg shadow-md" />
+            <div className="relative min-h-[40vh] max-h-[70vh] overflow-auto rounded-2xl bg-slate-950 flex items-center justify-center p-2 border border-slate-200">
+              {zoomModalImage.isPdf || zoomModalImage.src.includes('.pdf') || zoomModalImage.name?.endsWith('.pdf') ? (
+                <iframe src={zoomModalImage.src} className="w-full h-[65vh] rounded-lg bg-white" title={zoomModalImage.title} />
+              ) : isImageDoc({ dataUrl: zoomModalImage.src, name: zoomModalImage.name }) ? (
+                <img src={zoomModalImage.src} alt={zoomModalImage.title} className="max-h-[65vh] w-auto object-contain rounded-lg shadow-md" />
               ) : (
                 <div className="p-8 text-center text-white space-y-2">
                   <FileText size={48} className="text-white/70 mx-auto" />

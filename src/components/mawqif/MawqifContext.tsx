@@ -339,7 +339,35 @@ export function MawqifProvider({ children }: { children: React.ReactNode }) {
   };
 
   const submitApplication = async (formData: any): Promise<string> => {
-    if (!currentUser) return '';
+    // Resolve user: from state, or localStorage, or reconstruct from formData
+    let user = currentUser;
+    if (!user && typeof window !== 'undefined') {
+      const activeId = localStorage.getItem('mawqif_active_user_id');
+      const dbStr = localStorage.getItem('mawqif_accounts_db');
+      if (activeId && dbStr) {
+        try {
+          const accs = JSON.parse(dbStr);
+          if (accs[activeId]?.user) user = accs[activeId].user;
+        } catch {}
+      }
+    }
+
+    if (!user) {
+      user = {
+        id: `usr_${Date.now()}`,
+        fullName: formData.fullName || `${formData.firstName || ''} ${formData.familyName || ''}`.trim() || 'مقدم الطلب',
+        firstName: formData.firstName || '',
+        fatherName: formData.fatherName || '',
+        familyName: formData.familyName || '',
+        idNumber: formData.idNumber || '',
+        phone: formData.phone || '',
+        email: formData.email || '',
+        city: formData.city || 'الرياض',
+        address: formData.address || '',
+        dateOfBirth: formData.dateOfBirth || '',
+      };
+      setCurrentUser(user);
+    }
 
     // If user already had an existing application (e.g. rejected or needs_edit), retain the ID or generate a new one
     const isResubmit = !!userApplication && (userApplication.status === 'rejected' || userApplication.status === 'needs_edit');
@@ -385,9 +413,16 @@ export function MawqifProvider({ children }: { children: React.ReactNode }) {
 
     // Update in local DB
     const db = getAccountsDB();
-    if (db[currentUser.id]) {
-      db[currentUser.id].application = newApp;
-      db[currentUser.id].notifications = updatedNotifs;
+    if (db[user.id]) {
+      db[user.id].application = newApp;
+      db[user.id].notifications = updatedNotifs;
+      saveAccountsDB(db);
+    } else {
+      db[user.id] = {
+        user: user,
+        application: newApp,
+        notifications: updatedNotifs,
+      };
       saveAccountsDB(db);
     }
 
@@ -400,7 +435,7 @@ export function MawqifProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({
           action: 'save_application',
           application: newApp,
-          user: currentUser,
+          user: user,
         }),
       });
     } catch (e) {
