@@ -20,7 +20,9 @@ import {
   Download,
   Users,
   Car,
-  RefreshCw
+  RefreshCw,
+  Trash2,
+  AlertTriangle
 } from 'lucide-react';
 import AdminSidebar from '@/components/mawqif/layout/AdminSidebar';
 import StatusBadge, { StatusType } from '@/components/mawqif/ui/StatusBadge';
@@ -44,6 +46,17 @@ export default function AdminDashboardPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [records, setRecords] = useState<AdminAppRecord[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Selection & Delete States
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteModal, setDeleteModal] = useState<{
+    open: boolean;
+    type: 'single' | 'selected' | 'all';
+    targetId?: string;
+    targetName?: string;
+  }>({ open: false, type: 'all' });
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const loadData = async () => {
     setIsRefreshing(true);

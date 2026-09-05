@@ -472,6 +472,139 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true });
     }
 
+    // ---- 5. DELETE SINGLE RECORD (User + Application + Storage Files) ----
+    if (action === 'delete_record') {
+      const { id, userId, appId } = body;
+      const targetId = id || userId || appId;
+
+      if (!targetId) {
+        return NextResponse.json({ success: false, error: 'Missing target ID' }, { status: 400 });
+      }
+
+      // Find user and app associations
+      let matchedUserId = userId || '';
+      let matchedAppId = appId || '';
+
+      if (!matchedUserId || !matchedAppId) {
+        const { data: appRow } = await supabase
+          .from('mawqif_applications')
+          .select('id, user_id')
+          .or(`id.eq.${targetId},user_id.eq.${targetId},subscription_number.eq.${targetId}`)
+          .maybeSingle();
+
+        if (appRow) {
+          matchedAppId = appRow.id;
+          matchedUserId = appRow.user_id;
+        } else {
+          matchedUserId = targetId;
+        }
+      }
+
+      // 1. Delete notifications
+      if (matchedUserId) {
+        await supabase.from('mawqif_notifications').delete().eq('user_id', matchedUserId);
+      }
+
+      // 2. Delete application & its storage documents
+      if (matchedAppId) {
+        // Try cleaning storage folder
+        try {
+          const safeAppId = matchedAppId.replace(/[^a-zA-Z0-9_-]/g, '_');
+          const { data: files } = await supabase.storage.from('mawqif-documents').list(`apps/${safeAppId}`);
+          if (files && files.length > 0) {
+            const paths = files.map((f: any) => `apps/${safeAppId}/${f.name}`);
+            await supabase.storage.from('mawqif-documents').remove(paths);
+          }
+        } catch (sErr) {
+          console.warn('Storage cleanup warning:', sErr);
+        }
+
+        await supabase.from('mawqif_applications').delete().or(`id.eq.${matchedAppId},user_id.eq.${matchedUserId}`);
+      }
+
+      // 3. Delete user account
+      if (matchedUserId) {
+        await supabase.from('mawqif_users').delete().eq('id', matchedUserId);
+      }
+
+      return NextResponse.json({ success: true, message: 'تم الحذف بنجاح' });
+    }
+
+    // ---- 6. DELETE SELECTED RECORDS ----
+    if (action === 'delete_selected') {
+      const { ids } = body;
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return NextResponse.json({ success: true, deleted: 0 });
+      }
+
+      for (const singleId of ids) {
+        try {
+          // Find associated user
+          const { data: appRow } = await supabase
+            .from('mawqif_applications')
+            .select('id, user_id')
+            .or(`id.eq.${singleId},user_id.eq.${singleId}`)
+            .maybeSingle();
+
+          const uId = appRow?.user_id || singleId;
+          const aId = appRow?.id || singleId;
+
+          // Delete notifs
+          await supabase.from('mawqif_notifications').delete().eq('user_id', uId);
+
+          // Delete storage files
+          try {
+            const safeAppId = aId.replace(/[^a-zA-Z0-9_-]/g, '_');
+            const { data: files } = await supabase.storage.from('mawqif-documents').list(`apps/${safeAppId}`);
+            if (files && files.length > 0) {
+              const paths = files.map((f: any) => `apps/${safeAppId}/${f.name}`);
+              await supabase.storage.from('mawqif-documents').remove(paths);
+            }
+          } catch {}
+
+          // Delete applications
+          await supabase.from('mawqif_applications').delete().or(`id.eq.${aId},user_id.eq.${uId}`);
+
+          // Delete user
+          await supabase.from('mawqif_users').delete().eq('id', uId);
+        } catch (itemErr) {
+          console.error(`Error deleting item ${singleId}:`, itemErr);
+        }
+      }
+
+      return NextResponse.json({ success: true, deleted: ids.length });
+    }
+
+    // ---- 7. DELETE ALL USERS & APPLICATIONS (Complete Wipe) ----
+    if (action === 'delete_all') {
+      // 1. Delete all notifications
+      await supabase.from('mawqif_notifications').delete().neq('id', 0);
+
+      // 2. Delete all applications
+      await supabase.from('mawqif_applications').delete().neq('id', 'NONE');
+
+      // 3. Delete all users
+      await supabase.from('mawqif_users').delete().neq('id', 'NONE');
+
+      // 4. Clean storage apps folder
+      try {
+        const { data: rootList } = await supabase.storage.from('mawqif-documents').list('apps');
+        if (rootList && rootList.length > 0) {
+          for (const item of rootList) {
+            const { data: subFiles } = await supabase.storage.from('mawqif-documents').list(`apps/${item.name}`);
+            if (subFiles && subFiles.length > 0) {
+              const paths = subFiles.map((sf: any) => `apps/${item.name}/${sf.name}`);
+              await supabase.storage.from('mawqif-documents').remove(paths);
+            }
+          }
+        }
+      } catch (sErr) {
+        console.warn('Storage wipe warning:', sErr);
+      }
+
+      return NextResponse.json({ success: true, message: 'تم مسح وحذف كافة المستخدمين والطلبات نهائياً' });
+    }
+
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('Supabase POST Error:', error);
