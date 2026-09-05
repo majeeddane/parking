@@ -176,6 +176,34 @@ export default function AdminDashboardPage() {
             </button>
 
             <button
+              onClick={async () => {
+                if (!confirm('هل أنت متأكد من حذف جميع البيانات نهائيًا؟ لا يمكن التراجع!')) return;
+                try {
+                  const res = await fetch('/api/mawqif/db', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'delete_all' }),
+                  });
+                  const data = await res.json();
+                  if (data.success) {
+                    localStorage.removeItem('mawqif_accounts_db');
+                    alert('تم حذف جميع البيانات بنجاح. سيتم تحديث القائمة.');
+                    loadData();
+                  } else {
+                    alert('فشل حذف البيانات: ' + (data.error || 'غير معروف'));
+                  }
+                } catch (e) {
+                  console.error(e);
+                  alert('حدث خطأ أثناء طلب الحذف.');
+                }
+              }}
+              className="text-xs bg-red-100 hover:bg-red-200 text-red-800 px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <Trash2 size={13} />
+              مسح كل البيانات
+            </button>
+
+            <button
               onClick={handleAdminLogout}
               className="text-xs bg-red-50 hover:bg-red-100 text-red-700 px-3 py-1.5 rounded-xl font-bold border border-red-200 transition-colors cursor-pointer"
               title="قفل لوحة المشرف وتسجيل الخروج"
