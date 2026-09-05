@@ -51,46 +51,14 @@ export default function AdminAllApplicationsPage() {
   const loadData = useCallback(async () => {
     setIsRefreshing(true);
     try {
-      // 1. Fetch live from Supabase Server API (no cache)
+      // Fetch EXCLUSIVELY from Supabase — admin NEVER reads localStorage
+      // This ensures deleted records stay deleted regardless of which device the admin uses
       const res = await fetch('/api/mawqif/db', { cache: 'no-store' });
       const json = await res.json();
       setCloudConnected(true);
 
-      let serverDb = json.data || {};
-      let localDb: any = {};
-
-      // 2. Also merge local storage if available on this machine
-      if (typeof window !== 'undefined') {
-        try {
-          const localDbStr = localStorage.getItem('mawqif_accounts_db');
-          if (localDbStr) {
-            localDb = JSON.parse(localDbStr);
-          }
-        } catch {}
-      }
-
-      // Server database takes precedence as ground truth across all devices
-      const db = { ...localDb, ...serverDb };
-
-      // Auto self-heal sync: if this machine has local applications not yet saved to Supabase, push them now!
-      for (const [key, acc] of Object.entries(localDb as Record<string, any>)) {
-        const appId = acc?.application?.id;
-        const existsOnServer = Object.values(serverDb).some((sAcc: any) => 
-          (appId && sAcc?.application?.id === appId) || (acc?.user?.id && sAcc?.user?.id === acc.user.id)
-        );
-        if (!existsOnServer && acc?.user) {
-          fetch('/api/mawqif/db', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              action: acc.application ? 'save_application' : 'save_user',
-              application: acc.application,
-              user: acc.user,
-              record: acc,
-            }),
-          }).catch(err => console.warn('Self-heal sync err:', err));
-        }
-      }
+      // Server is the ONLY source of truth — no localStorage merge
+      const db = json.data || {};
 
       const realApps: ExtendedAppRecord[] = [];
       Object.values(db).forEach((acc: any) => {
@@ -139,6 +107,9 @@ export default function AdminAllApplicationsPage() {
       setIsLoading(false);
     }
   }, []);
+
+  // After any deletion, also wipe the local machine's localStorage
+  // so this admin device doesn't accidentally re-sync deleted records
 
   useEffect(() => {
     loadData();

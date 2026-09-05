@@ -61,40 +61,13 @@ export default function AdminDashboardPage() {
   const loadData = async () => {
     setIsRefreshing(true);
     try {
-      // 1. Fetch live strictly from Supabase Server DB
+      // Fetch EXCLUSIVELY from Supabase — admin NEVER reads localStorage
+      // This ensures deletions are permanent across ALL devices
       const res = await fetch('/api/mawqif/db', { cache: 'no-store' });
       const json = await res.json();
-      const serverDb = json.data || {};
 
-      let localDb: any = {};
-      if (typeof window !== 'undefined') {
-        try {
-          const localDbStr = localStorage.getItem('mawqif_accounts_db');
-          if (localDbStr) localDb = JSON.parse(localDbStr);
-        } catch {}
-      }
-
-      // Self-heal: Push any local apps to Supabase so they are visible from any device
-      for (const [key, acc] of Object.entries(localDb as Record<string, any>)) {
-        const appId = acc?.application?.id;
-        const exists = Object.values(serverDb).some((sAcc: any) =>
-          (appId && sAcc?.application?.id === appId) || (acc?.user?.id && sAcc?.user?.id === acc.user.id)
-        );
-        if (!exists && acc?.user) {
-          fetch('/api/mawqif/db', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              action: acc.application ? 'save_application' : 'save_user',
-              application: acc.application,
-              user: acc.user,
-              record: acc,
-            }),
-          }).catch(() => {});
-        }
-      }
-
-      const db = { ...localDb, ...serverDb };
+      // Server is the ONLY source of truth — no localStorage merge, no self-heal
+      const db = json.data || {};
 
       const realApps: AdminAppRecord[] = [];
       Object.values(db).forEach((acc: any) => {
