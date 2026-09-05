@@ -119,7 +119,7 @@ export default function AdminReviewApplicationPage() {
             const ls = typeof window !== 'undefined' ? localStorage.getItem('mawqif_accounts_db') : null;
             if (ls) localDB = JSON.parse(ls);
           } catch {}
-          const merged = { ...serverDB, ...localDB };
+          const merged = { ...localDB, ...serverDB };
           localStorage.setItem('mawqif_accounts_db', JSON.stringify(merged));
           loadAppData(merged);
         }

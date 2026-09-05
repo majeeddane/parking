@@ -107,21 +107,15 @@ export function MawqifProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Sync from server
-    fetch('/api/mawqif/db')
+    fetch('/api/mawqif/db', { cache: 'no-store' })
       .then(res => res.json())
       .then(json => {
         if (json.success && json.data) {
           const serverDB = json.data;
           const localDB = getAccountsDB();
-          const merged = { ...serverDB, ...localDB };
+          // Server data takes precedence so updates from any device are reflected
+          const merged = { ...localDB, ...serverDB };
           localStorage.setItem('mawqif_accounts_db', JSON.stringify(merged));
-
-          // Also push localDB to server to ensure 100% sync
-          fetch('/api/mawqif/db', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'sync_all', allAccounts: merged }),
-          }).catch(() => {});
 
           if (activeUserId && merged[activeUserId]) {
             const currentAcc = merged[activeUserId];
@@ -132,7 +126,7 @@ export function MawqifProvider({ children }: { children: React.ReactNode }) {
           }
         }
       })
-      .catch(() => {});
+      .catch((err) => console.error('Error fetching server db on mount:', err));
   }, []);
 
   // Helper to persist accounts DB
@@ -191,7 +185,7 @@ export function MawqifProvider({ children }: { children: React.ReactNode }) {
         const res = await fetch('/api/mawqif/db', { cache: 'no-store' });
         const json = await res.json();
         if (json.success && json.data) {
-          db = { ...json.data, ...db };
+          db = { ...db, ...json.data };
           try {
             localStorage.setItem('mawqif_accounts_db', JSON.stringify(db));
           } catch {}
@@ -237,7 +231,7 @@ export function MawqifProvider({ children }: { children: React.ReactNode }) {
       const res = await fetch('/api/mawqif/db', { cache: 'no-store' });
       const json = await res.json();
       if (json.success && json.data) {
-        db = { ...json.data, ...db };
+        db = { ...db, ...json.data };
       }
     } catch {}
 
@@ -267,7 +261,7 @@ export function MawqifProvider({ children }: { children: React.ReactNode }) {
       };
     }
 
-    const userId = `usr_${Date.now()}`;
+    let userId = `usr_${Date.now()}`;
     const fullName = `${data.firstName || ''} ${data.fatherName || ''} ${data.familyName || ''}`.trim() || data.fullName || 'مستخدم جديد';
     const userPassword = (password || data.password || '123456').trim();
 
@@ -307,12 +301,21 @@ export function MawqifProvider({ children }: { children: React.ReactNode }) {
 
     // Direct, awaited sync to cloud server
     try {
-      await fetch('/api/mawqif/db', {
+      const res = await fetch('/api/mawqif/db', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         keepalive: true,
         body: JSON.stringify({ action: 'save_user', record: newRecord }),
       });
+      const resJson = await res.json();
+      if (resJson?.userId && resJson.userId !== userId) {
+        newUser.id = resJson.userId;
+        newRecord.user.id = resJson.userId;
+        db[resJson.userId] = newRecord;
+        delete db[userId];
+        userId = resJson.userId;
+        saveAccountsDB(db);
+      }
     } catch (e) {
       console.error('Failed to immediately save user to cloud:', e);
     }

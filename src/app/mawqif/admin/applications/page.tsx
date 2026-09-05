@@ -42,18 +42,21 @@ export default function AdminAllApplicationsPage() {
       const json = await res.json();
       setCloudConnected(true);
 
-      let db = json.data || {};
+      let serverDb = json.data || {};
+      let localDb: any = {};
 
       // 2. Also merge local storage if available on this machine
       if (typeof window !== 'undefined') {
         try {
           const localDbStr = localStorage.getItem('mawqif_accounts_db');
           if (localDbStr) {
-            const localDb = JSON.parse(localDbStr);
-            db = { ...db, ...localDb };
+            localDb = JSON.parse(localDbStr);
           }
         } catch {}
       }
+
+      // Server database takes precedence as ground truth across all devices
+      const db = { ...localDb, ...serverDb };
 
       const realApps: ExtendedAppRecord[] = [];
       Object.values(db).forEach((acc: any) => {
@@ -69,6 +72,20 @@ export default function AdminAllApplicationsPage() {
             plate: a.plateNumber || '—',
             submissionDate: a.submissionDate || 'اليوم',
             status: a.status || 'pending',
+            isLive: true,
+          });
+        } else if (acc?.user && acc.user.id) {
+          // Account registered, awaiting vehicle application submission
+          const u = acc.user;
+          realApps.push({
+            id: u.id,
+            applicantName: u.fullName || `${u.firstName || ''} ${u.familyName || ''}`.trim() || 'مستخدم مسجل',
+            idNumber: u.idNumber || '—',
+            phone: u.phone || '—',
+            vehicle: 'حساب مسجل (بانتظار إكمال الطلب)',
+            plate: '—',
+            submissionDate: 'مسجل جديد',
+            status: 'pending',
             isLive: true,
           });
         }

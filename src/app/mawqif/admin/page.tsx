@@ -113,14 +113,19 @@ export default function AdminDashboardPage() {
       const res = await fetch('/api/mawqif/db', { cache: 'no-store' });
       const json = await res.json();
       
-      let db = json.data || {};
+      let serverDb = json.data || {};
+      let localDb: any = {};
       if (typeof window !== 'undefined') {
         const localDbStr = localStorage.getItem('mawqif_accounts_db');
         if (localDbStr) {
-          const localDb = JSON.parse(localDbStr);
-          db = { ...db, ...localDb };
+          try {
+            localDb = JSON.parse(localDbStr);
+          } catch {}
         }
       }
+
+      // Cloud database takes precedence
+      const db = { ...localDb, ...serverDb };
 
       const realApps: AdminAppRecord[] = [];
       Object.values(db).forEach((acc: any) => {
@@ -134,6 +139,17 @@ export default function AdminDashboardPage() {
             plate: acc.application.plateNumber || '—',
             submissionDate: acc.application.submissionDate || 'اليوم',
             status: acc.application.status || 'pending',
+          });
+        } else if (acc?.user && acc.user.id) {
+          realApps.push({
+            id: acc.user.id,
+            applicantName: acc.user.fullName || acc.user.firstName || 'مستخدم مسجل',
+            idNumber: acc.user.idNumber || '—',
+            phone: acc.user.phone || '—',
+            vehicle: 'حساب مسجل (بانتظار إكمال الطلب)',
+            plate: '—',
+            submissionDate: 'مسجل جديد',
+            status: 'pending',
           });
         }
       });

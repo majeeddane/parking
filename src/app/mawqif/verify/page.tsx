@@ -42,7 +42,7 @@ function VerifyContent() {
 
       // 1. Search in local and synced DB
       try {
-        const localStr = localStorage.getItem('mawqif_accounts_db');
+        const localStr = typeof window !== 'undefined' ? localStorage.getItem('mawqif_accounts_db') : null;
         if (localStr) {
           const db = JSON.parse(localStr);
           for (const key of Object.keys(db)) {
@@ -75,6 +75,46 @@ function VerifyContent() {
         }
       } catch (e) {
         console.error('Error verifying against DB:', e);
+      }
+
+      // 2. If not found locally, fetch live from Supabase cloud
+      if (!match) {
+        try {
+          fetch('/api/mawqif/db', { cache: 'no-store' })
+            .then(r => r.json())
+            .then(json => {
+              if (json.success && json.data) {
+                const db = json.data;
+                for (const key of Object.keys(db)) {
+                  const acc = db[key];
+                  const app = acc.application;
+                  const user = acc.user;
+                  if (app) {
+                    const subNum = (app.subscriptionNumber || app.id || '').toUpperCase();
+                    const plateClean = (app.plateNumber || '').replace(/\s+/g, '').toUpperCase();
+                    const searchPlateClean = clean.replace(/\s+/g, '');
+
+                    if (subNum === clean || plateClean === searchPlateClean) {
+                      const isApproved = app.status === 'approved';
+                      setResult({
+                        subscriptionNumber: app.subscriptionNumber || app.id,
+                        plateNumber: app.plateNumber || '—',
+                        subscriberName: user?.fullName ? `${user.fullName.split(' ')[0]} ***` : 'مستفيد معتمد',
+                        vehicle: `${app.vehicleMake || ''} ${app.vehicleModel || ''}`.trim() || 'مركبة مسجلة',
+                        startDate: app.subscriptionStartDate || app.submissionDate || '01 سبتمبر 2026',
+                        expiryDate: app.subscriptionEndDate || '31 أغسطس 2027',
+                        isValid: isApproved,
+                        statusText: isApproved
+                          ? 'اشتراك سنوي مجاني سارٍ وموثق رسميًا'
+                          : 'الطلب قيد التدقيق والمراجعة (غير مفعل بعد)',
+                      });
+                      return;
+                    }
+                  }
+                }
+              }
+            }).catch(() => {});
+        } catch {}
       }
 
       setResult(match);

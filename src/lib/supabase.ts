@@ -3,9 +3,14 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://oyvhbcsfnfrfokelhlsn.supabase.co';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
+// Polyfill WebSocket in Node.js environment so @supabase/supabase-js doesn't throw
+if (typeof WebSocket === 'undefined') {
+  (globalThis as any).WebSocket = class WebSocket {};
+}
+
 // Public client (for client-side usage)
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  realtime: { transport: undefined as any },
+  auth: { persistSession: false },
 });
 
 // Service role client (server-side only – never expose to browser)

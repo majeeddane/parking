@@ -4,13 +4,214 @@ import { createClient } from '@supabase/supabase-js';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+// Polyfill WebSocket in Node.js environment so @supabase/supabase-js doesn't throw
+if (typeof WebSocket === 'undefined') {
+  (globalThis as any).WebSocket = class WebSocket {};
+}
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://oyvhbcsfnfrfokelhlsn.supabase.co';
+const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95dmhiY3NmbmZyZm9rZWxobHNuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4ODI2Njg3NCwiZXhwIjoyMTAzODQyODc0fQ.UwtVEFEgRVNE_9IqlFwXwul4bvP5-OgcGVWwOi_hOF4';
 
 function getSupabase() {
   return createClient(supabaseUrl, serviceKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
+}
+
+// =============================================
+// Helper: Upload document base64 to Supabase Storage
+// =============================================
+async function uploadDocToStorage(supabase: any, appId: string, docKey: string, docObj: any) {
+  if (!docObj || !docObj.dataUrl) return docObj;
+
+  // Already a permanent URL
+  if (typeof docObj.dataUrl === 'string' && docObj.dataUrl.startsWith('http')) {
+    return docObj;
+  }
+
+  // Base64 dataUrl
+  if (typeof docObj.dataUrl === 'string' && docObj.dataUrl.startsWith('data:')) {
+    try {
+      const match = docObj.dataUrl.match(/^data:([a-zA-Z0-9/+\-]+);base64,(.+)$/);
+      if (!match) return docObj;
+
+      const mimeType = match[1];
+      const base64Data = match[2];
+      const buffer = Buffer.from(base64Data, 'base64');
+
+      let ext = 'jpg';
+      if (mimeType.includes('png')) ext = 'png';
+      else if (mimeType.includes('pdf')) ext = 'pdf';
+      else if (mimeType.includes('webp')) ext = 'webp';
+
+      const safeAppId = appId.replace(/[^a-zA-Z0-9_-]/g, '_');
+      const fileName = `apps/${safeAppId}/${docKey}_${Date.now()}.${ext}`;
+
+      const { error: uploadErr } = await supabase.storage
+        .from('mawqif-documents')
+        .upload(fileName, buffer, {
+          contentType: mimeType,
+          upsert: true,
+        });
+
+      if (uploadErr) {
+        console.warn(`Storage upload warning for ${docKey}:`, uploadErr.message);
+        return docObj; // fallback to keeping the original data
+      }
+
+      const { data: pubData } = supabase.storage
+        .from('mawqif-documents')
+        .getPublicUrl(fileName);
+
+      return {
+        name: docObj.name || `${docKey}.${ext}`,
+        type: mimeType,
+        size: docObj.size || buffer.length,
+        dataUrl: pubData.publicUrl,
+        storagePath: fileName,
+      };
+    } catch (e) {
+      console.warn(`Failed to process doc ${docKey}:`, e);
+      return docObj;
+    }
+  }
+
+  return docObj;
+}
+
+// =============================================
+// Helper: Safe User Upsert
+// =============================================
+async function safeUpsertUser(supabase: any, u: any) {
+  if (!u?.id) return null;
+
+  let targetId = u.id;
+
+  try {
+    const cleanIdNumber = (u.idNumber || '').trim();
+    const cleanPhone = (u.phone || '').trim().replace(/\s+/g, '');
+    const cleanEmail = (u.email || '').trim().toLowerCase();
+
+    // Check if user exists by id_number
+    if (cleanIdNumber) {
+      const { data: byIdNum } = await supabase
+        .from('mawqif_users')
+        .select('id')
+        .eq('id_number', cleanIdNumber)
+        .maybeSingle();
+      if (byIdNum?.id) targetId = byIdNum.id;
+    }
+
+    // Check if user exists by phone
+    if (targetId === u.id && cleanPhone) {
+      const { data: byPhone } = await supabase
+        .from('mawqif_users')
+        .select('id')
+        .eq('phone', cleanPhone)
+        .maybeSingle();
+      if (byPhone?.id) targetId = byPhone.id;
+    }
+
+    // Check if user exists by email
+    if (targetId === u.id && cleanEmail) {
+      const { data: byEmail } = await supabase
+        .from('mawqif_users')
+        .select('id')
+        .eq('email', cleanEmail)
+        .maybeSingle();
+      if (byEmail?.id) targetId = byEmail.id;
+    }
+  } catch (err) {
+    console.warn('User lookup error:', err);
+  }
+
+  const { data, error } = await supabase
+    .from('mawqif_users')
+    .upsert({
+      id: targetId,
+      first_name: u.firstName || null,
+      father_name: u.fatherName || null,
+      family_name: u.familyName || null,
+      full_name: u.fullName || `${u.firstName || ''} ${u.familyName || ''}`.trim() || 'مستخدم مواقف',
+      id_number: u.idNumber || null,
+      phone: u.phone || null,
+      email: u.email || null,
+      city: u.city || 'الرياض',
+      address: u.address || null,
+      date_of_birth: u.dateOfBirth || null,
+      password_hash: u.password || null,
+    }, { onConflict: 'id' })
+    .select('id')
+    .single();
+
+  if (error) {
+    console.error('SafeUpsertUser error:', error);
+  }
+  return targetId;
+}
+
+// =============================================
+// Helper: Safe Application Upsert
+// =============================================
+async function safeUpsertApplication(supabase: any, a: any, userId: string) {
+  if (!a?.id) return;
+
+  // Ensure user exists in mawqif_users to satisfy foreign key constraint
+  const { data: userRow } = await supabase
+    .from('mawqif_users')
+    .select('id')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (!userRow?.id) {
+    await supabase.from('mawqif_users').upsert({
+      id: userId,
+      full_name: 'مقدم طلب جديد',
+      city: 'الرياض',
+    }, { onConflict: 'id' });
+  }
+
+  // Upload any base64 document attachments to Supabase Storage
+  let docId = a.documents?.idDocument || null;
+  let docDriving = a.documents?.drivingLicense || null;
+  let docVehicle = a.documents?.vehicleLicense || null;
+  let docCar = a.documents?.carPhoto || null;
+
+  if (docId) docId = await uploadDocToStorage(supabase, a.id, 'id_document', docId);
+  if (docDriving) docDriving = await uploadDocToStorage(supabase, a.id, 'driving_license', docDriving);
+  if (docVehicle) docVehicle = await uploadDocToStorage(supabase, a.id, 'vehicle_license', docVehicle);
+  if (docCar) docCar = await uploadDocToStorage(supabase, a.id, 'car_photo', docCar);
+
+  const { error } = await supabase
+    .from('mawqif_applications')
+    .upsert({
+      id: a.id,
+      user_id: userId,
+      submission_date: a.submissionDate || new Date().toLocaleDateString('ar-SA'),
+      status: a.status || 'pending',
+      vehicle_make: a.vehicleMake || null,
+      vehicle_model: a.vehicleModel || null,
+      vehicle_year: a.vehicleYear || null,
+      vehicle_color: a.vehicleColor || null,
+      plate_number: a.plateNumber || null,
+      vehicle_license_number: a.vehicleLicenseNumber || null,
+      is_owner: a.isOwner || 'yes',
+      owner_relation: a.ownerRelation || 'owner',
+      rejection_reason: a.rejectionReason || null,
+      subscription_number: a.subscriptionNumber || a.id,
+      subscription_start: a.subscriptionStartDate || null,
+      subscription_end: a.subscriptionEndDate || null,
+      doc_id_document: docId,
+      doc_driving_license: docDriving,
+      doc_vehicle_license: docVehicle,
+      doc_car_photo: docCar,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'id' });
+
+  if (error) {
+    console.error('SafeUpsertApplication error:', error);
+    throw error;
+  }
 }
 
 // =============================================
@@ -41,7 +242,7 @@ export async function GET() {
 
     if (nErr) throw nErr;
 
-    // Reconstruct the unified shape: userId -> { user, application, notifications }
+    // Unified shape: userId -> { user, application, notifications }
     const db: Record<string, any> = {};
 
     // 1. Process all registered users
@@ -75,6 +276,7 @@ export async function GET() {
         application: userApp
           ? {
               id: userApp.id,
+              userId: userApp.user_id,
               submissionDate: userApp.submission_date,
               status: userApp.status,
               vehicleMake: userApp.vehicle_make,
@@ -116,6 +318,7 @@ export async function GET() {
           },
           application: {
             id: a.id,
+            userId: a.user_id,
             submissionDate: a.submission_date,
             status: a.status,
             vehicleMake: a.vehicle_make,
@@ -150,87 +353,6 @@ export async function GET() {
   } catch (error: any) {
     console.error('Supabase GET Error:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-  }
-}
-
-// =============================================
-// Helper: Safe User Upsert
-// =============================================
-async function safeUpsertUser(supabase: any, u: any) {
-  if (!u?.id) return null;
-
-  // Check if a user with this id_number or phone already exists
-  let targetId = u.id;
-  if (u.idNumber) {
-    const { data: existingById } = await supabase
-      .from('mawqif_users')
-      .select('id')
-      .eq('id_number', u.idNumber)
-      .maybeSingle();
-    if (existingById?.id) {
-      targetId = existingById.id;
-    }
-  }
-
-  const { data, error } = await supabase
-    .from('mawqif_users')
-    .upsert({
-      id: targetId,
-      first_name: u.firstName || null,
-      father_name: u.fatherName || null,
-      family_name: u.familyName || null,
-      full_name: u.fullName || `${u.firstName || ''} ${u.familyName || ''}`.trim() || 'مستخدم مواقف',
-      id_number: u.idNumber || null,
-      phone: u.phone || null,
-      email: u.email || null,
-      city: u.city || 'الرياض',
-      address: u.address || null,
-      date_of_birth: u.dateOfBirth || null,
-      password_hash: u.password || null,
-    }, { onConflict: 'id' })
-    .select('id')
-    .single();
-
-  if (error) {
-    console.error('SafeUpsertUser error:', error);
-  }
-  return targetId;
-}
-
-// =============================================
-// Helper: Safe Application Upsert
-// =============================================
-async function safeUpsertApplication(supabase: any, a: any, userId: string) {
-  if (!a?.id) return;
-
-  const { error } = await supabase
-    .from('mawqif_applications')
-    .upsert({
-      id: a.id,
-      user_id: userId,
-      submission_date: a.submissionDate || new Date().toLocaleDateString('ar-SA'),
-      status: a.status || 'pending',
-      vehicle_make: a.vehicleMake || null,
-      vehicle_model: a.vehicleModel || null,
-      vehicle_year: a.vehicleYear || null,
-      vehicle_color: a.vehicleColor || null,
-      plate_number: a.plateNumber || null,
-      vehicle_license_number: a.vehicleLicenseNumber || null,
-      is_owner: a.isOwner || 'yes',
-      owner_relation: a.ownerRelation || 'owner',
-      rejection_reason: a.rejectionReason || null,
-      subscription_number: a.subscriptionNumber || a.id,
-      subscription_start: a.subscriptionStartDate || null,
-      subscription_end: a.subscriptionEndDate || null,
-      doc_id_document: a.documents?.idDocument || null,
-      doc_driving_license: a.documents?.drivingLicense || null,
-      doc_vehicle_license: a.documents?.vehicleLicense || null,
-      doc_car_photo: a.documents?.carPhoto || null,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'id' });
-
-  if (error) {
-    console.error('SafeUpsertApplication error:', error);
   }
 }
 
@@ -285,7 +407,7 @@ export async function POST(request: NextRequest) {
       }
 
       await safeUpsertApplication(supabase, application, userId);
-      return NextResponse.json({ success: true, applicationId: application.id });
+      return NextResponse.json({ success: true, applicationId: application.id, userId });
     }
 
     // ---- 3. SYNC ALL ACCOUNTS ----

@@ -135,60 +135,90 @@ function TrackContent() {
     }
   }, [isLoggedIn, currentUser, userApplication, searchParams]);
 
-  const searchUserApplication = (searchTerm: string) => {
+  const searchUserApplication = async (searchTerm: string) => {
     if (!searchTerm.trim()) return;
     setIsLoading(true);
     setErrorMessage('');
 
-    setTimeout(() => {
-      const clean = searchTerm.trim().toUpperCase();
+    const clean = searchTerm.trim().toUpperCase();
 
-      // Check against current logged in user's application
-      if (
-        userApplication &&
-        (userApplication.id.toUpperCase() === clean ||
-          currentUser?.idNumber === clean ||
-          currentUser?.phone === clean)
-      ) {
-        setActiveRecord(buildRecordFromApp(userApplication, currentUser.fullName, currentUser.idNumber));
-        setHasSearched(true);
-        setIsLoading(false);
-        return;
-      }
+    // 1. Check against current userApplication in context
+    if (
+      userApplication &&
+      (userApplication.id.toUpperCase() === clean ||
+        currentUser?.idNumber === clean ||
+        currentUser?.phone === clean)
+    ) {
+      setActiveRecord(buildRecordFromApp(userApplication, currentUser?.fullName || 'المستفيد', currentUser?.idNumber || '—'));
+      setHasSearched(true);
+      setIsLoading(false);
+      return;
+    }
 
-      // Check localStorage database for this user's account specifically
-      try {
-        const localStr = localStorage.getItem('mawqif_accounts_db');
-        if (localStr && currentUser) {
-          const accounts = JSON.parse(localStr);
-          // Look inside the current user's record
-          const myAccount = accounts[currentUser.id] || accounts[currentUser.idNumber] || accounts[currentUser.phone];
-          if (myAccount && myAccount.application) {
-            const app = myAccount.application;
+    // 2. Check localStorage database
+    try {
+      const localStr = typeof window !== 'undefined' ? localStorage.getItem('mawqif_accounts_db') : null;
+      if (localStr) {
+        const accounts = JSON.parse(localStr);
+        for (const key of Object.keys(accounts)) {
+          const acc = accounts[key];
+          if (acc?.application) {
+            const app = acc.application;
+            const u = acc.user || {};
             if (
               app.id.toUpperCase() === clean ||
-              clean === currentUser.idNumber ||
-              clean === currentUser.phone
+              u.idNumber === clean ||
+              u.phone === clean ||
+              (app.subscriptionNumber && app.subscriptionNumber.toUpperCase() === clean)
             ) {
-              setActiveRecord(buildRecordFromApp(app, currentUser.fullName, currentUser.idNumber));
+              setActiveRecord(buildRecordFromApp(app, u.fullName || 'المستفيد', u.idNumber || '—'));
               setHasSearched(true);
               setIsLoading(false);
               return;
             }
           }
         }
-      } catch (e) {
-        console.error('Error parsing local DB in track page:', e);
       }
+    } catch (e) {
+      console.error('Error parsing local DB in track page:', e);
+    }
 
-      // Not found for this specific user
-      setActiveRecord(null);
-      setHasSearched(true);
-      setErrorMessage(
-        `لم يتم العثور على أي طلب خاص بحسابك بالرقم «${searchTerm}». يرجى التأكد من كتابة رقم طلبك بشكل صحيح.`
-      );
-      setIsLoading(false);
-    }, 300);
+    // 3. Fallback: Fetch directly from Supabase Cloud Server
+    try {
+      const res = await fetch('/api/mawqif/db', { cache: 'no-store' });
+      const json = await res.json();
+      if (json.success && json.data) {
+        const serverAccounts = json.data;
+        for (const key of Object.keys(serverAccounts)) {
+          const acc = serverAccounts[key];
+          if (acc?.application) {
+            const app = acc.application;
+            const u = acc.user || {};
+            if (
+              app.id.toUpperCase() === clean ||
+              u.idNumber === clean ||
+              u.phone === clean ||
+              (app.subscriptionNumber && app.subscriptionNumber.toUpperCase() === clean)
+            ) {
+              setActiveRecord(buildRecordFromApp(app, u.fullName || 'المستفيد', u.idNumber || '—'));
+              setHasSearched(true);
+              setIsLoading(false);
+              return;
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching from cloud in track page:', err);
+    }
+
+    // Not found
+    setActiveRecord(null);
+    setHasSearched(true);
+    setErrorMessage(
+      `لم يتم العثور على أي طلب خاص بحسابك بالرقم «${searchTerm}». يرجى التأكد من كتابة رقم طلبك بشكل صحيح.`
+    );
+    setIsLoading(false);
   };
 
   const handleSearch = (e: React.FormEvent) => {
