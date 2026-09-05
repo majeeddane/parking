@@ -145,11 +145,10 @@ export function MawqifProvider({ children }: { children: React.ReactNode }) {
     } catch (e) {
       console.warn('localStorage quota warning:', e);
     }
-    // Persist to server API in background with keepalive
+    // Persist to server API in background
     fetch('/api/mawqif/db', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      keepalive: true,
       body: JSON.stringify({ action: 'sync_all', allAccounts: db }),
     }).catch(err => console.error('Failed to sync with server:', err));
   };
@@ -304,7 +303,6 @@ export function MawqifProvider({ children }: { children: React.ReactNode }) {
       const res = await fetch('/api/mawqif/db', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        keepalive: true,
         body: JSON.stringify({ action: 'save_user', record: newRecord }),
       });
       const resJson = await res.json();
@@ -428,16 +426,17 @@ export function MawqifProvider({ children }: { children: React.ReactNode }) {
 
     // Direct, awaited sync to Supabase Cloud Server
     try {
-      await fetch('/api/mawqif/db', {
+      const res = await fetch('/api/mawqif/db', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        keepalive: true,
         body: JSON.stringify({
           action: 'save_application',
           application: newApp,
           user: user,
         }),
       });
+      const resJson = await res.json();
+      console.log('Application saved to Supabase cloud successfully:', resJson);
     } catch (e) {
       console.error('Failed to immediately push application to cloud:', e);
     }

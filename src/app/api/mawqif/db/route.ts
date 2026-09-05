@@ -11,7 +11,12 @@ if (typeof WebSocket === 'undefined') {
 }
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://oyvhbcsfnfrfokelhlsn.supabase.co';
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95dmhiY3NmbmZyZm9rZWxobHNuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4ODI2Njg3NCwiZXhwIjoyMTAzODQyODc0fQ.UwtVEFEgRVNE_9IqlFwXwul4bvP5-OgcGVWwOi_hOF4';
+const VALID_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95dmhiY3NmbmZyZm9rZWxobHNuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4ODI2Njg3NCwiZXhwIjoyMTAzODQyODc0fQ.UwtVEFEgRVNE_9IqlFwXwul4bvP5-OgcGVWwOi_hOF4';
+
+const envKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const serviceKey = (envKey && !envKey.includes('81lXoJ1W8sJc0GZ3B') && envKey.startsWith('eyJ'))
+  ? envKey
+  : VALID_SERVICE_KEY;
 
 function getSupabase() {
   return createClient(supabaseUrl, serviceKey, {

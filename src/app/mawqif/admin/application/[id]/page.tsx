@@ -198,7 +198,6 @@ export default function AdminReviewApplicationPage() {
     fetch('/api/mawqif/db', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      keepalive: true,
       body: JSON.stringify({
         action: 'update_status',
         appId,

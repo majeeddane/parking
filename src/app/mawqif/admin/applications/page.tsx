@@ -59,6 +59,26 @@ export default function AdminAllApplicationsPage() {
       // Server database takes precedence as ground truth across all devices
       const db = { ...localDb, ...serverDb };
 
+      // Auto self-heal sync: if this machine has local applications not yet saved to Supabase, push them now!
+      for (const [key, acc] of Object.entries(localDb as Record<string, any>)) {
+        const appId = acc?.application?.id;
+        const existsOnServer = Object.values(serverDb).some((sAcc: any) => 
+          (appId && sAcc?.application?.id === appId) || (acc?.user?.id && sAcc?.user?.id === acc.user.id)
+        );
+        if (!existsOnServer && acc?.user) {
+          fetch('/api/mawqif/db', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: acc.application ? 'save_application' : 'save_user',
+              application: acc.application,
+              user: acc.user,
+              record: acc,
+            }),
+          }).catch(err => console.warn('Self-heal sync err:', err));
+        }
+      }
+
       const realApps: ExtendedAppRecord[] = [];
       Object.values(db).forEach((acc: any) => {
         if (acc?.application) {
